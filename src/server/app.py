@@ -9,7 +9,7 @@ import grpc
 from concurrent import futures
 from prometheus_client import start_http_server
 from src.core.scheduler import Scheduler
-from src.grpc import scheduler_pb2, scheduler_pb2_grpc
+from src import scheduler_pb2, scheduler_pb2_grpc
 
 log = structlog.get_logger()
 
