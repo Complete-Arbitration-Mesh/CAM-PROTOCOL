@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cam-scheduler.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cam-scheduler.name" . }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "cam-scheduler.name" . }}
+    spec:
+      containers:
+      - name: cam-scheduler
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.service.port }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
