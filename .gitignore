@@ -1,0 +1,12 @@
+# Byte‑code cache
+__pycache__/
+*.py[cod]
+
+# Generated gRPC stubs (can be regenerated)
+
+# Virtual‑envs
+.venv/
+
+# IDE / editor
+.vscode/
+.idea/
