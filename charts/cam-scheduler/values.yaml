@@ -1,0 +1,7 @@
+image:
+  repository: yourrepo/cam-scheduler
+  tag: latest
+replicaCount: 2
+service:
+  port: 50051
+resources: {}
