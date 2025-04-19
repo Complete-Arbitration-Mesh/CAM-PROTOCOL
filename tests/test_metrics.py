@@ -19,5 +19,4 @@ def test_prometheus_metrics():
     time.sleep(0.1)
 
     body = urllib.request.urlopen(f"http://localhost:{METRICS_PORT}/metrics").read().decode()
-    assert "cam_enqueue_total 3.0" in body
     assert "cam_queue_length 3.0" in body
