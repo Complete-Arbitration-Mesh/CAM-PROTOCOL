@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=42"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cam-starter-client"
+version = "0.1.0"
+description = "A client starter package for CAM Scheduler"
+authors = [{name = "Your Name", email = "you@example.com"}]
+license = {text = "MIT"}
+dependencies = ["grpcio"]
+
+[project.urls]
+homepage = "https://github.com/yourusername/cam-starter"
+
+[project.scripts]
+cam-client = "src.client.client:main"
