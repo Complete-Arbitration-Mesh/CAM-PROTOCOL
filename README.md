@@ -1,7 +1,6 @@
 <!-- ─────────────────────────  LOGO  ───────────────────────── -->
 <p align="center">
-  <img src="art/cam-logo.png" width="220"
-       alt="Cognitive Arbitration Mesh (CAM) logo – retro‑modern neon">
+  <img src="https://github.com/user-attachments/assets/0243c00b-1d37-4325-afcf-db95e5c21bc1" width="220" alt="Cognitive Arbitration Mesh (CAM) logo – retro‑modern neon">
 </p>
 
 <h1 align="center">
