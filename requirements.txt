@@ -1,3 +1,5 @@
 structlog
 prometheus_client
 pytest
+grpcio
+pytest-benchmark
