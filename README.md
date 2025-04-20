@@ -7,13 +7,13 @@
   Cognitive Arbitration Mesh — CAM‑Starter
 </h1>
 <p align="center">
-  _Sub‑millisecond AI task scheduler · open‑core · drop‑in Helm chart_<br>
+  Sub‑millisecond AI task scheduler · open‑core · drop‑in Helm chart <br>
   <sup>Thinks faster than Kubernetes HPA, treats GPUs fairer than FIFO queues.</sup>
 </p>
 
 <p align="center">
   <a href="https://github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter/actions/workflows/ci.yaml">
-    <img src="https://github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter/actions/workflows/ci.yaml/badge.svg" alt="CI status" />
+    <img src="https://github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter/actions/workflows/ci.yaml/badge.svg" alt="CI status"/>
   </a>
   &nbsp;
   <a href="LICENSE">
