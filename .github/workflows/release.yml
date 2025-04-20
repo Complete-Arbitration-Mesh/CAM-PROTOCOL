@@ -10,9 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
       - name: Generate CHANGELOG
-        run: ./scripts/generate_changelog.py
+        run: python3 scripts/generate_changelog.py
 
       - name: Draft GitHub Release
         uses: softprops/action-gh-release@v1
