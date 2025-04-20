@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+from src.client.client import Client
+
+def main():
+    parser = argparse.ArgumentParser(prog="camctl")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_enq = sub.add_parser("enqueue")
+    p_enq.add_argument("job")
+    p_enq.add_argument("--priority", type=int, default=0)
+
+    p_deq = sub.add_parser("dequeue")
+
+    p_rep = sub.add_parser("reprioritise")
+    p_rep.add_argument("job_id")
+    p_rep.add_argument("new_priority", type=int)
+
+    args = parser.parse_args()
+    cli = Client()
+
+    if args.cmd == "enqueue":
+        cli.enqueue(args.job, args.priority)
+        print(f"Enqueued: {args.job} (priority={args.priority})")
+    elif args.cmd == "dequeue":
+        job = cli.dequeue()
+        print(f"Dequeued: {job}")
+    elif args.cmd == "reprioritise":
+        cli.reprioritise(args.job_id, args.new_priority)
+        print(f"Reprioritised: {args.job_id} -> {args.new_priority}")
+
+if __name__ == "__main__":
+    main()
