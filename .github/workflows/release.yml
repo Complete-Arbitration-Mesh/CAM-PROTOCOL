@@ -6,19 +6,19 @@ on:
       - 'v*.*.*'
 
 jobs:
-  draft:
+  draft_release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Generate Changelog
+      - name: Generate CHANGELOG
         run: ./scripts/generate_changelog.py
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: \${{ github.ref_name }}
+          name: Release \${{ github.ref_name }}
           body_path: CHANGELOG.md
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}

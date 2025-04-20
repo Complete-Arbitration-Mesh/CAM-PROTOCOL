@@ -1,5 +1,7 @@
 # Changelog since temp/sprint2-good
 
+* Sprint 8: add changelog generator and GitHub Release workflow (ETPDEV)
+* Fix changelog script: drop unused toml import (ETPDEV)
 * Sprint 7: add end‑to‑end integration test and camctl CLI (ETPDEV)
 * Sprint 6: add packaging & Docker automation (ETPDEV)
 * Sprint 6: add packaging (pyproject.toml + PyPI workflow) and Docker automation (ETPDEV)

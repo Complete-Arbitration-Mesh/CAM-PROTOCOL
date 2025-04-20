@@ -2,26 +2,22 @@
 import subprocess
 
 def get_latest_tag():
-    tags = subprocess.check_output(["git", "tag"], text=True).split()
+    tags = subprocess.run(["git","tag"], capture_output=True, text=True).stdout.split()
     return tags[-1] if tags else None
 
-def get_commits(since_tag):
-    if since_tag:
-        rev = f"{since_tag}..HEAD"
-    else:
-        rev = "HEAD"
-    out = subprocess.check_output(
-        ["git", "log", rev, "--pretty=format:* %s (%an)"], text=True
-    )
-    return out.strip()
+def get_commits(since):
+    rev = f"{since}..HEAD" if since else "HEAD"
+    return subprocess.run(
+        ["git","log", rev, "--pretty=format:* %s (%an)"],
+        capture_output=True, text=True
+    ).stdout
 
 def main():
     tag = get_latest_tag()
-    commits = get_commits(tag)
-    with open("CHANGELOG.md", "w") as f:
-        header = f"# Changelog since {tag or 'start'}\n\n"
-        f.write(header)
-        f.write(commits + "\n")
+    commits = get_commits(tag).strip()
+    header = f"# Changelog since {tag or 'project start'}\n\n"
+    with open("CHANGELOG.md","w") as f:
+        f.write(header + (commits + "\n" if commits else "No changes\n"))
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
