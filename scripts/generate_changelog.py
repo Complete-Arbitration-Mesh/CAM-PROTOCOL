@@ -14,10 +14,10 @@ def get_commits(since):
 
 def main():
     tag = get_latest_tag()
-    commits = get_commits(tag).strip()
-    header = f"# Changelog since {tag or 'project start'}\n\n"
-    with open("CHANGELOG.md","w") as f:
-        f.write(header + (commits + "\n" if commits else "No changes\n"))
+    entries = get_commits(tag).strip()
+    header = f"# Changelog since {tag or 'start'}\n\n"
+    with open("CHANGELOG.md", "w") as f:
+        f.write(header + (entries + "\n" if entries else "No changes\n"))
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
