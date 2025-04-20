@@ -3,3 +3,9 @@ prometheus_client
 pytest
 grpcio
 pytest-benchmark
+
+# gRPC / proto runtime
+grpcio
+grpcio-tools
+protobuf
+googleapis-common-protos
