@@ -1,0 +1,16 @@
+# Changelog since temp/sprint2-good
+
+* Sprint 7: add end‑to‑end integration test and camctl CLI (ETPDEV)
+* Sprint 6: add packaging & Docker automation (ETPDEV)
+* Sprint 6: add packaging (pyproject.toml + PyPI workflow) and Docker automation (ETPDEV)
+* Cleanup: remove empty src/grpc package and finalize server imports (ETPDEV)
+* Fix metrics test: only assert cam_queue_length (ETPDEV)
+* Sprint 4‑B: add structlog and Prometheus metrics with test (ETPDEV)
+* Sprint 4‑A: add Helm chart and deployment docs (ETPDEV)
+* Sprint 4‑A: add Helm chart and deploy docs (ETPDEV)
+* Regenerate gRPC stubs locally (ETPDEV)
+* AI sprint 3‑X: <title> (ETPDEV)
+* Sprint 2: gRPC stubs, server, tests, clean byte‑code (ETPDEV)
+* Shim gRPC stub import; tests green (ETPDEV)
+* AI sprint 1: scheduler package & unit tests (all green) (ETPDEV)
+* Update README.md (Edwards Tech Innovations)
