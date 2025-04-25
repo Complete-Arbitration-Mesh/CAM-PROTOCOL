@@ -1,0 +1,7 @@
+# --- local tooling ---
+.venv/
+__pycache__/
+# --- big runtime artifacts ---
+server.log
+scale_tests/tmp-ghz.json
+tmp.json
