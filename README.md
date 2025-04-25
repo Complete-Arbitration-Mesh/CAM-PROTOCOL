@@ -4,7 +4,7 @@
 </p>
 
 <h1 align="center">
-  Cognitive Arbitration Mesh — CAM‑Starter
+  Cognitive Arbitration Mesh — Beta
 </h1>
 <p align="center">
   Sub‑millisecond AI task scheduler · open‑core · drop‑in Helm chart <br>
