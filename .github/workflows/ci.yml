@@ -1,1 +1,43 @@
 #  (paste clean YAML above)
+name: CI
+
+on: [push, pull_request]    # ←  this makes the workflow run!
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+  security:
+    needs: build            # only if tests passed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bandit scan
+        run: |
+          pip install bandit
+          bandit -r src -lll
+
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@v0.15.0
+        with:
+          scan-type: fs
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
