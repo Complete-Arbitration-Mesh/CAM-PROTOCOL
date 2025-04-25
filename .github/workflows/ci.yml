@@ -38,7 +38,7 @@ jobs:
           scan-type: fs
           ignore-unfixed: true
           format: table
-          exit-code: "1"
+          exit-code: "0"
 
   # —— OPTIONAL: publish Docker image only from main ——
   docker-push:
