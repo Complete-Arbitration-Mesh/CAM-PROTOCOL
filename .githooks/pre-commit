@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+#
+# Abort commit if any staged file is larger than 50 MiB
+#
+limit=$((50*1024*1024))           # 50 MiB limit
+
+# List *all* paths in the index (already staged), honouring renames:
+staged=$(git diff --cached --name-only --diff-filter=AM --no-renames)
+
+# Fallback for the very first commit when diff returns nothing
+[ -z "$staged" ] && staged=$(git ls-files --cached)
+
+for f in $staged; do
+  [ -f "$f" ] || continue         # ignore deletions / submodules
+  size=$(stat -c%s "$f")
+  if [ "$size" -gt "$limit" ]; then
+    human=$(numfmt --to=iec "$size" 2>/dev/null || echo "${size}B")
+    echo "❌  $f is $human (> 50 MiB) – commit blocked" >&2
+    exit 1
+  fi
+done
+exit 0
