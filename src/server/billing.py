@@ -1,0 +1,66 @@
+# src/server/billing.py
+
+from dotenv import load_dotenv
+load_dotenv(".env")               # ← loads your STRIPE_* vars
+
+import os
+import stripe
+from flask import Flask, request, jsonify
+from src.core.licensing import issue_key
+
+# ─── Stripe Configuration ──────────────────────────────────────────────────────
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+# ─── Flask App Setup ───────────────────────────────────────────────────────────
+app = Flask(__name__)
+
+# ─── Create a Checkout Session ─────────────────────────────────────────────────
+@app.route("/create-checkout-session", methods=["POST"])
+def create_session():
+    data = request.json
+    session = stripe.checkout.Session.create(
+        customer_email = data["email"],
+        mode           = "subscription",
+        line_items     = [{"price": data["price_id"], "quantity": 1}],
+        success_url    = "https://example.com/success?session_id={CHECKOUT_SESSION_ID}",
+        cancel_url     = "https://example.com/cancel",
+    )
+    return jsonify({"sessionId": session.id})
+
+# ─── Webhook Endpoint ───────────────────────────────────────────────────────────
+@app.route("/webhook", methods=["POST"])
+def stripe_webhook():
+    payload    = request.data
+    sig_header = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, WEBHOOK_SECRET)
+    except stripe.error.SignatureVerificationError:
+        return "⚠️ Invalid signature", 400
+
+    # Debug print every event
+    print(f"🔥 Received event: {event['type']}")
+
+    if event["type"] == "checkout.session.completed":
+        sess     = event["data"]["object"]
+        email    = sess["customer_email"]
+        price_id = sess["display_items"][0]["price"]["id"]
+
+        tier_map = {
+            os.getenv("STRIPE_PRICE_BASIC_MONTH"): "basic",
+            os.getenv("STRIPE_PRICE_SMB_MONTH"):   "small",
+            os.getenv("STRIPE_PRICE_SMB_YEAR"):    "small",
+            os.getenv("STRIPE_PRICE_ENT_MONTH"):   "enterprise",
+            os.getenv("STRIPE_PRICE_ENT_YEAR"):    "enterprise",
+        }
+        tier = tier_map.get(price_id)
+        if tier:
+            key = issue_key(email, tier)
+            print(f"Issued key {key} for {email} at tier {tier}")
+            # TODO: persist key↔customer in your DB
+
+    return "", 200
+
+# ─── Run Locally ────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    app.run(port=4242)

@@ -1,0 +1,31 @@
+*** Begin Patch
+*** Update File: src/server/app.py
+@@
+-import scheduler_pb2_grpc
+-from core.scheduler import Scheduler
++import scheduler_pb2_grpc
++from core.scheduler import Scheduler
++from core.licensing import validate_key
+
+ class AppServicer(scheduler_pb2_grpc.SchedulerServicer):
+     def __init__(self):
+@@
+ def serve():
+-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
++    # apply license‑key interceptor
++    from core.licensing import validate_key
++    class LicenseInterceptor(grpc.ServerInterceptor):
++        def intercept_service(self, continuation, handler_call_details):
++            meta = dict(handler_call_details.invocation_metadata or [])
++            api_key = meta.get("api_key") or meta.get("authorization")
++            if not validate_key(api_key):
++                def abort_handler(request, context):
++                    context.abort(grpc.StatusCode.UNAUTHENTICATED, "invalid API key")
++                return grpc.unary_unary_rpc_method_handler(abort_handler)
++            return continuation(handler_call_details)
++
++    server = grpc.server(
++        futures.ThreadPoolExecutor(max_workers=10),
++        interceptors=[LicenseInterceptor()]
++    )
+*** End Patch

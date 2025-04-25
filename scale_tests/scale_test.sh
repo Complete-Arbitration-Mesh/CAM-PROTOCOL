@@ -1,36 +1,41 @@
 #!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────────
+# scale_tests/scale_test.sh — run ghz load tests at various concurrencies
+# ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
-# ── gRPC proto & endpoint ───────────────────────────────────────────────
-IMPORT_PATH="../proto"               # where to find your .proto
+# 0) run from this script’s folder
+cd "$(dirname "$0")"
+
+# ── gRPC proto & endpoint ───────────────────────────────────────────────────
+IMPORT_PATH="../proto"               # where to find your .proto files
 PROTO_FILE="scheduler.proto"         # filename under $IMPORT_PATH
 ADDRESS="localhost:50051"            # your gRPC server address
 METHOD="cam.Scheduler/Enqueue"       # fully‑qualified RPC
 PAYLOAD='{"job":{"id":"scale-test","priority":1}}'
 
-# ── Output CSV ──────────────────────────────────────────────────────────
+# ── Output CSV ──────────────────────────────────────────────────────────────
 OUTPUT="results.csv"
 echo "agents,rps" > "$OUTPUT"
 
 for AGENTS in 1 10 50 100 500 1000; do
-  echo "Running with $AGENTS agents…"
+  echo "→ Running with $AGENTS agents…"
 
-  # run ghz with correct flags
   ghz \
-    --import-path "$IMPORT_PATH" \
+    -i "$IMPORT_PATH" \
     --proto "$PROTO_FILE" \
     --call "$METHOD" \
     --insecure \
     --data "$PAYLOAD" \
-    "$ADDRESS" \
     --concurrency "$AGENTS" \
     --total 1000 \
-    --output json \
-    > "results-${AGENTS}.json"
+    --format=json \
+    --output "results-${AGENTS}.json" \
+    "$ADDRESS"
 
-  # extract requests/sec (fallback to old field if needed)
-  TPS=$(jq -r '.summary.requests_per_second // .summary.rps // 0' "results-${AGENTS}.json")
-  echo "$AGENTS,$TPS" >> "$OUTPUT"
+  # extract top‑level rps from the ghz JSON
+  RPS=$(jq -r '.rps // 0' "results-${AGENTS}.json")
+  echo "$AGENTS,$RPS" >> "$OUTPUT"
 done
 
-echo "✅ Finished. See results.csv"
+echo "✅ Finished. See $(realpath "$OUTPUT")"

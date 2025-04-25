@@ -1,0 +1,1 @@
+/home/dru/cam-starter/scale_tests/../.venv/bin/python: Error while finding module specification for 'src.server.app' (ModuleNotFoundError: No module named 'src')
