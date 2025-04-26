@@ -42,7 +42,10 @@ jobs:
 
   # —— OPTIONAL: publish Docker image only from main ——
   docker-push:
-    if: github.ref == 'refs/heads/main'
+    # Run only on main **and** when Docker Hub secrets exist
+    if: github.ref == 'refs/heads/main' &&
+        secrets.DOCKERHUB_USER != "" &&
+        secrets.DOCKERHUB_PASS != ""
     needs: build
     runs-on: ubuntu-latest
     steps:
