@@ -20,8 +20,6 @@
     <img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="Apache‑2.0 license" />
   </a>
   &nbsp;
-  <a href="https://goreportcard.com/report/github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter">
-    <img src="https://goreportcard.com/badge/github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter" alt="Go report" />
   </a>
 </p>
 
