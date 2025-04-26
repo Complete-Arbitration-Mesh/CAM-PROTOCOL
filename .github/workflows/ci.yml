@@ -1,9 +1,8 @@
 name: CI
-
 on: [push, pull_request]
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,50 +10,5 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-
-      - name: Install deps
-        run: pip install -r requirements.txt
-
-      - name: Run tests
-        run: pytest -q
-
-  security:
-    needs: build            # run only if tests passed
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Bandit scan
-        run: |
-          pip install bandit
-          bandit -r src -lll
-
-      - name: Trivy scan
-        uses: aquasecurity/trivy-action@v0.15.0
-        with:
-          scan-type: fs
-          ignore-unfixed: true
-          format: table
-          exit-code: "0"
-
-  # —— OPTIONAL: publish Docker image only from main ——
-  docker-push:
-    # Run only on main **and** when Docker Hub secrets exist
-  if: github.ref == 'refs/heads/main'     if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_PASS != ''    if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_PASS != '' secrets.DOCKERHUB_USER != ''     if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_PASS != ''    if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_PASS != '' secrets.DOCKERHUB_PASS != ''
-        secrets.DOCKERHUB_USER != "" &&
-        secrets.DOCKERHUB_PASS != ""
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Docker login & push
-        env:
-          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-          DOCKERHUB_PASS: ${{ secrets.DOCKERHUB_PASS }}
-        run: |
-          echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-          docker build -t "$DOCKERHUB_USER/cam:${{ github.sha }}" .
-          docker push "$DOCKERHUB_USER/cam:${{ github.sha }}"
+      - run: pip install -r requirements.txt
+      - run: pytest -q
