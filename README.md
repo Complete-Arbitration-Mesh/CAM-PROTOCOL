@@ -1,10 +1,18 @@
 <p align="center">
+  <img src="assets/cam-logo.png" alt="Cognitive Arbitration Mesh logo" width="240" />
+</p>
+<p align="center">
   <a href="https://github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/Cognitive-Arbitration-Mesh-CAM/cam-starter/ci.yml?label=CI&branch=main" alt="CI status"/>
+    <img src="https://img.shields.io/github/actions/workflow/status/Cognitive-Arbitration-Mesh-CAM/cam-starter/ci.yml?label=CI&branch=main" alt="CI status" />
   </a>
-  &nbsp;
+  <a href="https://github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter/actions/workflows/docker.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Cognitive-Arbitration-Mesh-CAM/cam-starter/docker.yml?label=Docker+CI&branch=main" alt="Docker CI status" />
+  </a>
   <a href="LICENSE">
-    <img src="https://img.shields.io/github/license/Cognitive-Arbitration-Mesh-CAM/cam-starter" alt="License: Apache-2.0"/>
+    <img src="https://img.shields.io/github/license/Cognitive-Arbitration-Mesh-CAM/cam-starter" alt="License: Apache-2.0" />
+  </a>
+  <a href="https://goreportcard.com/report/github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter">
+    <img src="https://goreportcard.com/badge/github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter" alt="Go Report Card" />
   </a>
 </p>
 
@@ -15,19 +23,19 @@ Thinks faster than Kubernetes HPA, treats GPUs fairer than FIFO queues.
 
 ---
 
-## 📑 Table of Contents
+## Table of Contents
 
 - [What it is](#what-it-is)  
 - [Why we built it](#why-we-built-it)  
 - [How it helps our AI agents](#how-it-helps-our-ai-agents)  
 - [✨ Why CAM?](#-why-cam)  
 - [🚀 Quick Start](#-quick-start)  
-- [🛠️ Installation & Configuration](#️-installation--configuration)  
+- [🛠 Installation & Configuration](#-installation--configuration)  
 - [📦 Helm Chart Reference](#-helm-chart-reference)  
 - [💻 SDK Usage Examples](#-sdk-usage-examples)  
-- [🗺️ Architecture](#️-architecture)  
+- [🗺 Architecture](#-architecture)  
 - [📈 Performance](#-performance)  
-- [🛡️ Security](#️-security)  
+- [🛡 Security](#-security)  
 - [🔧 Troubleshooting & FAQ](#-troubleshooting--faq)  
 - [🚧 Roadmap](#-roadmap)  
 - [🤝 Contributing](#-contributing)  
@@ -67,12 +75,12 @@ CAM sits between your AI agents (vision, NLP, recommendation, …) and your comp
 
 ## ✨ Why CAM?
 
-| Pain today                                        | How CAM fixes it                           |
-|---------------------------------------------------|--------------------------------------------|
-| Vision/NLP services fight for GPUs at peak load   | Arbiter loop grants slots every 50 ms → no starvation |
-| Kubernetes HPA reacts in seconds                  | Hybrid Logical Clock + FastPath → sub-ms decisions |
-| Auditors need a provable trail for pre-emptions   | Arbiter writes _inputs → decision → outcome_ to etcd/Postgres |
-| Over-provisioned clusters waste money             | +25–30 % GPU utilization demonstrated in pilots |
+| Pain today                                      | How CAM fixes it                                 |
+|-------------------------------------------------|--------------------------------------------------|
+| Vision/NLP services fight for GPUs at peak load | Arbiter loop grants slots every 50 ms → no starvation |
+| Kubernetes HPA reacts in seconds                | Hybrid Logical Clock + FastPath → sub-ms decisions |
+| Auditors need a provable trail for pre-emptions | Arbiter writes _inputs → decision → outcome_ to etcd/Postgres |
+| Over-provisioned clusters waste money           | +25–30 % GPU utilization demonstrated in pilots  |
 
 ---
 
