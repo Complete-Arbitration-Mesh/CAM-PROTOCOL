@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"            # location of requirements.txt
+    schedule:
+      interval: "weekly"      # or "daily"
+      day: "monday"
+    groups:
+      deps:
+        patterns: ["*"]       # put all bumps in one PR
