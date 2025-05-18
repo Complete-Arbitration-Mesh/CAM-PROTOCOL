@@ -1,0 +1,116 @@
+name: Quality Assurance
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: qa
+          POSTGRES_PASSWORD: qa
+          POSTGRES_DB: cam_qa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Create .env.test file
+        run: |
+          cp .env.example .env.test
+          echo "DATABASE_URL=postgresql://qa:qa@localhost:5432/cam_qa" >> .env.test
+          echo "NODE_ENV=test" >> .env.test
+      
+      - name: Run database migrations
+        run: npm run db:push
+        env:
+          DATABASE_URL: postgresql://qa:qa@localhost:5432/cam_qa
+      
+      - name: Seed test data
+        run: npx tsx scripts/seedUsers.ts
+        env:
+          DATABASE_URL: postgresql://qa:qa@localhost:5432/cam_qa
+      
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      
+      - name: Start server for tests
+        run: |
+          npm run dev &
+          sleep 10
+          curl -v http://localhost:5000/api/health
+        env:
+          DATABASE_URL: postgresql://qa:qa@localhost:5432/cam_qa
+          NODE_ENV: test
+      
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          DATABASE_URL: postgresql://qa:qa@localhost:5432/cam_qa
+          NODE_ENV: test
+      
+      - name: Run accessibility tests
+        run: node scripts/axe-scan.js
+        continue-on-error: true
+      
+      - name: Run Lighthouse CI
+        run: npx lhci autorun
+        continue-on-error: true
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results
+          path: |
+            playwright-report/
+            lighthouse/reports/
+            axe-results/
+          retention-days: 14
+      
+      - name: Generate QA Summary
+        if: always()
+        run: |
+          echo "# QA Test Results" > QA-SUMMARY.md
+          echo "\n## Playwright Tests" >> QA-SUMMARY.md
+          echo "\nSee detailed report in the artifacts." >> QA-SUMMARY.md
+          echo "\n## Accessibility Tests" >> QA-SUMMARY.md
+          if [ -f "axe-results/axe-violations.json" ]; then
+            VIOLATIONS=$(jq '. | length' axe-results/axe-violations.json)
+            echo "\n- Found $VIOLATIONS accessibility violations" >> QA-SUMMARY.md
+            echo "\nSee detailed report in the artifacts." >> QA-SUMMARY.md
+          else
+            echo "\n- No accessibility violations found" >> QA-SUMMARY.md
+          fi
+          echo "\n## Lighthouse Performance" >> QA-SUMMARY.md
+          echo "\nSee detailed report in the artifacts." >> QA-SUMMARY.md
+      
+      - name: Upload QA Summary
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: qa-summary
+          path: QA-SUMMARY.md
+          retention-days: 14

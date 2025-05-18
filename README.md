@@ -1,52 +1,122 @@
-# Cognitive Arbitration Mesh (CAM)
+# Cognitive Arbitration Mesh (CAM) Protocol
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/0243c00b-1d37-4325-afcf-db95e5c21bc1" width="220" alt="CAM logo"/>
-</p>
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE-CORE)
+[![Version](https://img.shields.io/badge/Version-1.0.0-green.svg)](CHANGELOG.md)
+[![Documentation](https://img.shields.io/badge/Documentation-Latest-brightgreen.svg)](/documentation)
+[![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-orange.svg)](CONTRIBUTING.md)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/Cognitive-Arbitration-Mesh-CAM/cam-starter/ci.yml?branch=main&label=CI)](https://github.com/Cognitive-Arbitration-Mesh-CAM/cam-starter/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+The Cognitive Arbitration Mesh (CAM) is an enterprise-grade intelligent orchestration platform for AI workloads, providing sophisticated routing, policy enforcement, and optimization across multiple AI providers.
 
----
+## Overview
 
-## Table of Contents
-- [What it is](#what-it-is)
-- [Why we built it](#why-we-built-it)
-- [How it helps AI agents](#how-it-helps-ai-agents)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Architecture](#architecture)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
+CAM serves as a powerful and lightweight arbitration layer between your applications and AI services, enabling:
 
----
+- **Multi-dimensional routing** based on cost, latency, reliability, and specialized capabilities
+- **Policy enforcement** for governance, security, and compliance
+- **Intelligent failover** to maintain system reliability
+- **Cost optimization** through provider selection and context management
+- **Performance monitoring** with detailed analytics
+- **Scalable architecture** supporting high-throughput enterprise applications
 
-## What it is
-CAM sits between your AI agents (vision, NLP, recommendation, …) and compute resources (GPUs, CPUs, TPUs). It exposes a simple gRPC API (`SubmitIntent`) and makes every scheduling decision in **< 1 ms** using a lock-free ring buffer + Hybrid Logical Clock.
+## Repository Structure
 
-## Why we built it
-- **Stop “fighting queues”** – real-time arbitration every 50 ms.
-- **Boost utilization** – +25-30 % GPU/CPU in pilots.
-- **Provable fairness** – every decision signed & audit-stored.
-- **Drop-in** – one Helm chart, no sidecars required.
+This repository is organized by feature tiers:
 
----
+- **[Core](/core)** - Foundation components available under Apache 2.0 license
+  - Basic routing engine
+  - Provider integrations
+  - Caching
+  - Observability tools
+  - Authentication
+  - Configuration
 
-## Quick Start
+- **[Professional](/professional)** - Enhanced capabilities for business deployments
+  - Semantic caching
+  - Request transformation
+  - Advanced routing
+  - Policy builder
+  - Monitoring
+  - Hybrid deployment
+
+- **[Enterprise](/enterprise)** - Advanced features for large-scale enterprise use
+  - Cognitive fingerprinting
+  - Arbitration
+  - Policy evolution
+  - Governance
+  - Security
+  - Integration
+
+## Documentation
+
+For detailed information, please refer to:
+
+- **[Protocol Specification](/documentation/protocol)**: Technical details of the CAM protocol
+- **[Architecture](/documentation/architecture)**: System design and components
+- **[Guides](/documentation/guides)**: Implementation and usage guides
+- **[API Reference](/documentation/api-reference)**: API documentation
+
+## Installation
+
+Install the CAM SDK for your preferred language:
+
 ```bash
-# 1) Create a local K8s cluster
-kind create cluster --name cam-demo
+# For JavaScript/TypeScript
+npm install cam-protocol
 
-# 2) Add Helm repo + install CAM
-helm repo add cam https://Cognitive-Arbitration-Mesh-CAM.github.io/cam-starter/charts
-helm install cam cam/cam-starter --namespace cam --create-namespace
+# For Python
+pip install cam-protocol
+```
 
-# 3) Run demo agents (Python)
-python -m venv venv && source venv/bin/activate
-pip install cam-sdk
-python demo/agents/vision_agent.py &
-python demo/agents/planner_agent.py &
+## Getting Started
 
-# 4) Open Grafana (admin/prom-operator)
-kubectl port-forward svc/kube-prom-grafana 3000:80 -n cam
-open http://localhost:3000
+To start using CAM, follow our [Quick Start Guide](/documentation/guides/quickstart.md).
+
+```javascript
+// JavaScript quick example
+import { CAMClient } from 'cam-protocol';
+
+const client = new CAMClient({
+  apiKey: 'your-api-key',
+  policies: {
+    routing: { strategy: 'cost-optimized' },
+    failover: { enabled: true }
+  }
+});
+
+const response = await client.completion({
+  prompt: 'Analyze the market trends for AI in 2025',
+});
+```
+
+## License
+
+- **Core components**: [Apache 2.0](LICENSE-CORE)
+- **Professional and Enterprise components**: [Commons Clause](LICENSE-ENTERPRISE)
+
+## Contributing
+
+We welcome contributions to the CAM Protocol. Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+## Security
+
+For security concerns, please review our [Security Policy](SECURITY.md).
+
+## Community & Support
+
+- [GitHub Discussions](https://github.com/organization/cam-protocol/discussions) - For questions and discussions
+- [GitHub Issues](https://github.com/organization/cam-protocol/issues) - For bug reports and feature requests
+- [Documentation](https://cam-protocol.io/docs) - Comprehensive documentation
+- [Discord](https://discord.gg/cam-protocol) - Join our community
+
+## Citing CAM
+
+If you use CAM in your research or production systems, please cite:
+
+```bibtex
+@software{cam_protocol,
+  author = {CAM Protocol Team},
+  title = {Cognitive Arbitration Mesh (CAM) Protocol},
+  url = {https://github.com/organization/cam-protocol},
+  version = {1.0.0},
+  year = {2025},
+}

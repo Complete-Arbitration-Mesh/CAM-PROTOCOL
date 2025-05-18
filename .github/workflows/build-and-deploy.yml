@@ -1,0 +1,205 @@
+name: Build and Deploy CAM
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  REGISTRY: ghcr.io
+  BASE_IMAGE: ghcr.io/${{ github.repository }}/cam-base
+  COMMUNITY_IMAGE: ghcr.io/${{ github.repository }}/cam/community
+  SMB_IMAGE: ghcr.io/${{ github.repository }}/cam/smb-pro
+  ENTERPRISE_IMAGE: ghcr.io/${{ github.repository }}/cam/enterprise-elite
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm run test:unit
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.BASE_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+      
+      # Build base image
+      - name: Build and push base image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: deployment/docker/Dockerfile.base
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      
+      # Build Community Edition
+      - name: Build and push Community Edition
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: deployment/docker/Dockerfile.community
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}:${{ github.sha }}
+          tags: |
+            ${{ env.COMMUNITY_IMAGE }}:${{ github.sha }}
+            ${{ env.COMMUNITY_IMAGE }}:latest
+      
+      # Build SMB-Pro Edition
+      - name: Build and push SMB-Pro Edition
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: deployment/docker/Dockerfile.smb
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}:${{ github.sha }}
+          tags: |
+            ${{ env.SMB_IMAGE }}:${{ github.sha }}
+            ${{ env.SMB_IMAGE }}:latest
+      
+      # Build Enterprise-Elite Edition
+      - name: Build and push Enterprise-Elite Edition
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: deployment/docker/Dockerfile.enterprise
+          push: true
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}:${{ github.sha }}
+          tags: |
+            ${{ env.ENTERPRISE_IMAGE }}:${{ github.sha }}
+            ${{ env.ENTERPRISE_IMAGE }}:latest
+
+  deploy-community:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: community
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+      
+      - name: Set up kubeconfig
+        uses: azure/k8s-set-context@v3
+        with:
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+      
+      - name: Deploy to Kubernetes
+        run: |
+          helm upgrade --install cam-community deployment/helm/cam-community \
+          --namespace cam-community \
+          --create-namespace \
+          --set image.repository=${{ env.COMMUNITY_IMAGE }} \
+          --set image.tag=${{ github.sha }}
+
+  deploy-smb:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: smb
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+      
+      - name: Set up kubeconfig
+        uses: azure/k8s-set-context@v3
+        with:
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+      
+      - name: Deploy to Kubernetes
+        run: |
+          helm upgrade --install cam-smb deployment/helm/cam-smb \
+          --namespace cam-smb \
+          --create-namespace \
+          --set image.repository=${{ env.SMB_IMAGE }} \
+          --set image.tag=${{ github.sha }}
+
+  deploy-enterprise:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    environment: enterprise
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'v3.10.0'
+      
+      - name: Set up kubeconfig
+        uses: azure/k8s-set-context@v3
+        with:
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+      
+      - name: Deploy to Kubernetes
+        run: |
+          helm upgrade --install cam-enterprise deployment/helm/cam-enterprise \
+          --namespace cam-enterprise \
+          --create-namespace \
+          --set image.repository=${{ env.ENTERPRISE_IMAGE }} \
+          --set image.tag=${{ github.sha }}

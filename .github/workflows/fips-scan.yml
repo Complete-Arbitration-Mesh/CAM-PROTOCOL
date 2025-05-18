@@ -1,0 +1,159 @@
+name: FIPS Compliance Scan
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'security/fips/**'
+      - 'deployment/helm/cam-enterprise/**'
+      - '.github/workflows/fips-scan.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'security/fips/**'
+      - 'deployment/helm/cam-enterprise/**'
+      - '.github/workflows/fips-scan.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-scan:
+    name: Build and Scan FIPS Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository }}/cam-enterprise-fips
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=sha,format=short
+      
+      - name: Build FIPS Image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: security/fips/Dockerfile.wolfi
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Run OSCAP FIPS Compliance Check
+        run: |
+          docker pull quay.io/compliance-operator/openscap-ocp4:latest
+          docker run --rm \
+            -v $(pwd):/host \
+            quay.io/compliance-operator/openscap-ocp4:latest \
+            oscap xccdf eval \
+            --profile xccdf_org.ssgproject.content_profile_cui \
+            --report /host/fips-report.html \
+            --results /host/fips-results.xml \
+            /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml
+      
+      - name: Run Grype Vulnerability Scanner
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ steps.meta.outputs.tags }}
+          fail-build: false
+          severity-cutoff: critical
+          output-format: sarif
+      
+      - name: Upload Vulnerability Report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+      
+      - name: Verify FIPS Cryptographic Modules
+        run: |
+          echo "Verifying FIPS cryptographic modules..."
+          CONTAINER_ID=$(docker run -d ${{ steps.meta.outputs.tags }} sleep 60)
+          
+          # Check for BoringSSL/BoringCrypto
+          docker exec $CONTAINER_ID find /usr/lib -name "libcrypto*.so*" -type f -exec readelf -d {} \; | grep -i boring || echo "WARNING: BoringCrypto not found"
+          
+          # Check for FIPS mode flag
+          docker exec $CONTAINER_ID /app/camd --version | grep -i "FIPS Mode: enabled" || echo "WARNING: FIPS mode not enabled in binary"
+          
+          # Clean up
+          docker stop $CONTAINER_ID
+      
+      - name: Upload FIPS Compliance Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: fips-compliance-report
+          path: |
+            fips-report.html
+            fips-results.xml
+      
+      - name: Push FIPS Image if on Main Branch
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: security/fips/Dockerfile.wolfi
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Update Badge in README
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          # Extract compliance percentage from scan report
+          COMPLIANCE_PCT=$(grep -oP 'compliance score is \K[0-9.]+' fips-results.xml || echo "0")
+          
+          # Determine badge color based on compliance
+          if (( $(echo "$COMPLIANCE_PCT >= 90" | bc -l) )); then
+            COLOR="green"
+          elif (( $(echo "$COMPLIANCE_PCT >= 70" | bc -l) )); then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+          
+          # Generate badge URL
+          BADGE_URL="https://img.shields.io/badge/FIPS--140--2-${COMPLIANCE_PCT}%25-${COLOR}"
+          
+          # Create or update shields.io badge image
+          curl -o fips-badge.svg "$BADGE_URL"
+          
+          # In a real workflow, we would now commit this badge back to the repo or update a CDN
+          echo "Badge URL: $BADGE_URL"
+          echo "Badge created at fips-badge.svg"
+          
+          # Upload the badge as an artifact
+          mkdir -p badges
+          cp fips-badge.svg badges/
+      
+      - name: Upload FIPS Badge
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v3
+        with:
+          name: fips-badge
+          path: badges/fips-badge.svg

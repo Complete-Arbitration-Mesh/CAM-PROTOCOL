@@ -1,0 +1,35 @@
+
+name: CAM Community Edition
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/fastpath/core/**'
+      - 'server/security/policy-enforcer.ts'
+      - 'spec/oaspec/**'
+      - 'docs/**'
+      - 'client/src/components/ui/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run test:core
+      - run: npm run test:e2e:community
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - run: npm ci
+      - run: npm run build:community
