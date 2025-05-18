@@ -32,6 +32,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
       
+      - name: Check for lock file
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "Error: package-lock.json is missing. Please commit the lock file.";
+            exit 1;
+          fi
+      
       - name: Install dependencies
         run: npm ci
       
