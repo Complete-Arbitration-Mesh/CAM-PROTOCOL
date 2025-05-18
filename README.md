@@ -9,7 +9,7 @@ The Cognitive Arbitration Mesh (CAM) is an enterprise-grade intelligent orchestr
 
 ## Overview
 
-CAM serves as a powerful and lightweight arbitration layer between your applications and AI services, enabling:
+CAM is a powerful arbitration layer between your applications and AI services, enabling:
 
 - **Multi-dimensional routing** based on cost, latency, reliability, and specialized capabilities
 - **Policy enforcement** for governance, security, and compliance

@@ -9,7 +9,7 @@ jobs:
   build-and-push:
    # run only on main **and** when the Docker Hub secrets exist
     if: github.ref == 'refs/heads/main' && secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_PASS != ''
-    runs-on: ubuntu-latest runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
