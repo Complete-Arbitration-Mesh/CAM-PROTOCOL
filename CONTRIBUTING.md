@@ -105,7 +105,26 @@ We follow [Semantic Versioning](https://semver.org/) for releases:
 
 ## License
 
-By contributing to the CAM Protocol, you agree that your contributions will be licensed under the project's license. See the [LICENSE](LICENSE) file for details.
+By contributing to the CAM Protocol, you agree that your contributions will be licensed under the project's dual-licensing model:
+
+1. **Community Edition**: Apache License 2.0
+2. **Professional/Enterprise Editions**: Apache License 2.0 with Commons Clause
+
+See the [LICENSE](LICENSE) file for complete details on our licensing model.
+
+### SPDX License Headers
+
+All source code files should include the appropriate SPDX license identifier at the top of the file:
+
+```typescript
+// SPDX-License-Identifier: Apache-2.0
+```
+
+For files that are part of the Professional/Enterprise editions:
+
+```typescript
+// SPDX-License-Identifier: Apache-2.0 WITH Commons-Clause-1.0
+```
 
 ## Questions?
 

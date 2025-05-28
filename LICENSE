@@ -1,0 +1,30 @@
+# CAM Protocol Licensing
+
+The CAM Protocol is available under a dual-licensing model:
+
+## Community Edition
+
+The CAM Protocol Community Edition is licensed under the Apache License, Version 2.0 (the "License");
+you may not use this software except in compliance with the License.
+You may obtain a copy of the License at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+The full text of the Apache 2.0 License is available in the [LICENSE-CORE](LICENSE-CORE) file.
+
+## Professional and Enterprise Editions
+
+The CAM Protocol Professional and Enterprise Editions are licensed under the Apache License, Version 2.0 
+with the Commons Clause restriction. This means that while the code is open source, you cannot sell the 
+software or a hosted/managed service that provides the software's primary functionality without a 
+commercial license from the CAM Protocol team.
+
+The full text of the Commons Clause License is available in the [LICENSE-ENTERPRISE](LICENSE-ENTERPRISE) file.
+
+For commercial licensing inquiries, please contact: [edwardstechpros+cam@outlook.com](mailto:edwardstechpros+cam@outlook.com)
