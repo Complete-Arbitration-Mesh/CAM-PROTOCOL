@@ -30,8 +30,8 @@ info:
     url: https://cam-platform.io/support
     email: api-support@cam-platform.io
   license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    name: CAM-Attribution License (Contact Andrew "Dru" Edwards)
+    url: https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/blob/main/LICENSE
   termsOfService: https://cam-platform.io/terms
 
 servers:

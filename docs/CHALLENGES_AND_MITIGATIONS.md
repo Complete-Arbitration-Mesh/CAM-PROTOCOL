@@ -28,7 +28,7 @@ This document acknowledges potential challenges with the CAM Protocol and outlin
 - Competition with established platforms like Kubernetes (for orchestration) or Hugging Face (for AI model management)
 
 **Mitigations:**
-- **Open Core Strategy**: The Community Edition is free and Apache 2.0 licensed to encourage adoption
+- **Direct Licensing Strategy**: A permission-based license keeps a close feedback loop with Andrew "Dru" Edwards, ensuring high quality support and intentional adoption
 - **Pre-built Agent Library**: We ship with 50+ pre-built specialized agents covering common use cases
 - **Agent Development Kit**: Tools and frameworks to simplify creation of custom agents
 - **Partner Program**: We've established partnerships with 15+ major AI providers
@@ -40,7 +40,7 @@ This document acknowledges potential challenges with the CAM Protocol and outlin
 **Challenges:**
 - We've introduced a more competitive pricing model with Community (free), Growth, Professional, and Enterprise tiers (contact us for pricing details)
 - Lack of detailed pricing transparency in the README
-- Commons Clause License for Professional/Enterprise tiers may limit flexibility compared to fully open-source alternatives
+- Permission-based licensing that requires approval from Andrew "Dru" Edwards may limit flexibility compared to fully open-source alternatives
 
 **Mitigations:**
 - **Free Community Tier**: Robust functionality available at no cost
@@ -48,7 +48,7 @@ This document acknowledges potential challenges with the CAM Protocol and outlin
 - **ROI Calculator**: We provide a tool to estimate cost savings from using CAM
 - **Transparent Feature Comparison**: We've added a [detailed feature comparison](pricing/FEATURE_COMPARISON.md) across tiers
 - **Custom Pricing**: For organizations with unique needs, we offer custom pricing options
-- **Dual Licensing**: The core functionality remains open source, with proprietary features as add-ons
+- **Collaborative Agreements**: Licensing discussions with Andrew "Dru" Edwards establish tailored terms that match organizational needs
 
 ### 4. Performance Overhead
 

@@ -3,8 +3,8 @@
 <div align="center">
   <img src="docs/assets/cam1.png" alt="Complete Arbitration Mesh Logo" width="200"/>
   <h3>Complete Arbitration Mesh (CAM) Protocol</h3>
-  
-  [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
+  [![License: Contact Andrew "Dru" Edwards](https://img.shields.io/badge/license-Contact%20Andrew%20%22Dru%22%20Edwards-critical)](LICENSE)
   [![Version](https://img.shields.io/badge/Version-2.0.0-brightgreen.svg)](docs/RELEASE_NOTES.md)
   [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](CHANGELOG.md)
   [![Compliance](https://img.shields.io/badge/Compliance-GDPR%20|%20CCPA-green.svg)](docs/legal/COMPLIANCE_CHECKLIST.md)
@@ -13,6 +13,8 @@
   [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-orange)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
 
   **Intelligent Orchestration and Collaboration for Modern AI Ecosystems**
+  
+  <strong>Built by Andrew "Dru" Edwards</strong>
 </div>
 
 
@@ -283,12 +285,14 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-CAM Protocol is available under a dual-licensing model:
-
-- **Community Edition**: [Apache 2.0 License](LICENSE)
-- **Professional/Enterprise**: [Apache 2.0 with Commons Clause](LICENSE-ENTERPRISE)
-
-See our detailed [licensing documentation](LICENSES.md) for more information.
+CAM Protocol is distributed under the proprietary
+[CAM-Attribution License](LICENSE). You **must** obtain written permission
+from Andrew "Dru" Edwards before using, modifying, or distributing the
+software. All approved use must clearly credit Andrew "Dru" Edwards as the
+creator of the build. Commercial deployments also require a separate
+agreement—see [LICENSE-ENTERPRISE](LICENSE-ENTERPRISE) and the detailed
+[licensing documentation](LICENSES.md) for guidance on requesting
+authorization and meeting attribution requirements.
 
 ## 🆘 Support
 

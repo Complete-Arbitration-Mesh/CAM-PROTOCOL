@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: LicenseRef-CAM-Attribution
 FROM node:18-alpine
 
 WORKDIR /app
@@ -15,7 +15,7 @@ RUN echo '{ \
   "dependencies": { \
     "express": "^4.18.2" \
   }, \
-  "license": "Apache-2.0" \
+  "license": "SEE LICENSE IN ../../LICENSE" \
 }' > package.json
 
 # Install dependencies
