@@ -61,5 +61,7 @@ Complete Arbitration Mesh is a unified platform that combines:
 
 ## License
 
-- **Core**: MIT License
-- **Enterprise Features**: Commercial License Required
+- **Usage**: Requires written permission from Andrew "Dru" Edwards under the
+  proprietary [CAM-Attribution License](../LICENSE).
+- **Attribution**: All approved use must include prominent credit stating the
+  build was created by Andrew "Dru" Edwards.

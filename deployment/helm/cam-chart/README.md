@@ -342,7 +342,10 @@ helm install cam ./cam-chart --dry-run --debug
 
 ## License
 
-This Helm chart is licensed under the MIT License. See the LICENSE file for details.
+This Helm chart is covered by the proprietary
+[CAM-Attribution License](../../../LICENSE). Written permission from Andrew "Dru"
+Edwards is required before using or distributing the chart, and all approved use
+must credit Andrew "Dru" Edwards for the build.
 
 ## Support
 

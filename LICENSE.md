@@ -1,9 +1,12 @@
-# CAM Protocol Licensing
+# CAM Protocol Licensing Overview
 
-> **Note**: This file has been replaced by the more comprehensive [LICENSES.md](./LICENSES.md) file.
+> **Note**: Detailed licensing requirements are documented in
+> [LICENSES.md](./LICENSES.md). Review that file before using the software.
 
-Please refer to [LICENSES.md](./LICENSES.md) for detailed information about the CAM Protocol licensing model, including the license matrix for Community, Professional, and Enterprise editions.
+The Complete Arbitration Mesh is governed by the proprietary
+**CAM-Attribution License** authored by Andrew "Dru" Edwards. No usage
+rights are granted without written permission. All approved uses must
+credit Andrew "Dru" Edwards as the creator of the build.
 
-## Questions
-
-If you have any questions about licensing, please open a discussion in the GitHub Discussions tab or contact us directly at licensing@cam-protocol.com.
+For licensing requests, email
+[EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com).
