@@ -1,20 +1,17 @@
-// SPDX-License-Identifier: Apache-2.0
-// Copyright 2025 Complete Arbitration Mesh
+// SPDX-License-Identifier: LicenseRef-CAM-Attribution
+// Copyright 2025 Andrew "Dru" Edwards
 
 /**
- * This file demonstrates the proper SPDX license header format for CAM Protocol source files.
- * All source files should include this header at the top of the file.
- * 
- * For Professional/Enterprise edition files, use:
- * // SPDX-License-Identifier: Apache-2.0 WITH Commons-Clause-1.0
+ * This file demonstrates the required SPDX license header for CAM Protocol source files.
+ * All source files must include the `LicenseRef-CAM-Attribution` identifier at the top.
+ * Contact EdwardsTechPros@Outlook.com to request permission before using the software.
  */
 
 export const getLicenseInfo = () => {
   return {
-    name: 'CAM Protocol',
-    version: '0.9.0',
-    license: 'Apache-2.0',
-    dualLicensing: true,
-    commercialLicense: 'Apache-2.0 WITH Commons-Clause-1.0'
+    name: 'Complete Arbitration Mesh',
+    version: '2.0.0',
+    license: 'LicenseRef-CAM-Attribution',
+    contact: 'EdwardsTechPros@Outlook.com'
   };
 };

@@ -1,17 +1,44 @@
-CAM Protocol Enterprise Edition License
+Complete Arbitration Mesh Commercial License Notice
+==================================================
 
-Copyright (c) 2024 CAM Protocol Team
+Copyright (c) 2025 Andrew "Dru" Edwards. All rights reserved.
 
-All rights reserved. This software and associated documentation files (the "Software") are protected by copyright law and international treaties. Unauthorized reproduction or distribution of this Software, or any portion of it, may result in severe civil and criminal penalties, and will be prosecuted to the maximum extent possible under law.
+Enterprise, professional, or commercial deployments of the Complete
+Arbitration Mesh ("CAM") require a separate written agreement directly
+with Andrew "Dru" Edwards. This notice reiterates the obligations defined
+in the CAM-Attribution License and clarifies additional expectations for
+commercial engagements.
 
-The Software is licensed, not sold. This license gives you limited rights to use the Software. The owner reserves all other rights.
+1. Written Agreement Required
+-----------------------------
+No commercial usage rights are granted by default. Organizations must
+obtain a signed license agreement from Andrew "Dru" Edwards before using
+CAM in any commercial, revenue-generating, or customer-facing context.
+This includes hosted services, SaaS offerings, consulting engagements,
+internal tooling used to deliver paid services, and derivative products.
 
-"Commons Clause" License Condition v1.0
+2. Attribution and Marketing Requirements
+----------------------------------------
+All approved commercial deployments must:
 
-The Software is provided to you by the Licensor under the License, as defined below, subject to the following condition.
+* Acknowledge Andrew "Dru" Edwards as the creator of CAM in public-facing
+  materials, product documentation, and customer communications.
+* Preserve proprietary notices within the software and documentation.
+* Provide a clear "Built by Andrew 'Dru' Edwards" attribution in the user
+  interface (where applicable) or accompanying materials.
 
-Without limiting other conditions in the License, the grant of rights under the License will not include, and the License does not grant to you, the right to Sell the Software.
+3. Support and Service Levels
+-----------------------------
+Service levels, maintenance commitments, and update schedules are defined
+per agreement. No warranty, SLA, or support is implied without a signed
+contract specifying those terms.
 
-For purposes of the foregoing, "Sell" means practicing any or all of the rights granted to you under the License to provide to third parties, for a fee or other consideration (including without limitation fees for hosting or consulting/support services related to the Software), a product or service whose value derives, entirely or substantially, from the functionality of the Software. Any license notice or attribution required by the License must also include this Commons Clause License Condition notice.
+4. Contact
+---------
+To initiate a commercial licensing discussion, email:
 
-For purposes of the clause above, the "License" is the Apache License, Version 2.0, and the Software is the CAM Protocol software.
+Andrew "Dru" Edwards
+Email: EdwardsTechPros@Outlook.com
+
+Any commercial use of CAM without a written agreement is strictly
+prohibited.

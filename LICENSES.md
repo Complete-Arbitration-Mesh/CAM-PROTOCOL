@@ -1,47 +1,57 @@
 # CAM Protocol Licensing
 
-The CAM Protocol is available under a dual-licensing model designed to support both open-source community usage and commercial applications.
+The Complete Arbitration Mesh (CAM) is distributed under the **CAM-Attribution
+License**, a proprietary license that requires explicit approval from the
+author and mandates visible credit for all permitted uses.
 
-## License Matrix
+## Summary of Requirements
 
-| Edition | License | Use Cases | File |
-|---------|---------|-----------|------|
-| **Community Edition** | Apache License 2.0 | Open-source projects, personal use, non-commercial applications | [LICENSE](./LICENSE) |
-| **Professional Edition** | Apache License 2.0 with Commons Clause | Commercial use with standard support and features | [LICENSE-ENTERPRISE](./LICENSE-ENTERPRISE) |
-| **Enterprise Edition** | Apache License 2.0 with Commons Clause | Commercial use with advanced features, premium support, and SLAs | [LICENSE-ENTERPRISE](./LICENSE-ENTERPRISE) |
+1. **Permission First** – You must obtain written permission from Andrew
+   "Dru" Edwards before using, copying, modifying, redistributing, or hosting
+   CAM in any environment.
+2. **Always Credit the Author** – When permission is granted, every
+   distribution, derivative work, marketing asset, and documentation set must
+   clearly state: `Built by Andrew "Dru" Edwards`.
+3. **No Unauthorized Commercial Use** – Commercial deployments require a
+   separate written agreement. See [LICENSE-ENTERPRISE](./LICENSE-ENTERPRISE)
+   for additional expectations.
 
-## Source Code Headers
+## Requesting Permission
 
-All source files in this repository should include the following SPDX license identifier header:
+Send licensing inquiries to [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com).
+Please include:
+
+- Your organization and primary contacts
+- Intended use case and distribution model
+- Any planned modifications or derivative works
+- Expected timelines
+
+You will receive written confirmation if the request is approved. Without a
+signed authorization, you do not have permission to use CAM.
+
+## Attribution Guidelines
+
+Approved usage must include clear credit to Andrew "Dru" Edwards:
+
+- Keep the SPDX identifier `LicenseRef-CAM-Attribution` at the top of source
+  files.
+- Add "Built by Andrew 'Dru' Edwards" to README files, about pages, or UI
+  footers that accompany the Software.
+- Preserve proprietary notices across binaries, documentation, and marketing
+  materials.
+
+## SPDX Identifier
+
+All source files should use the following SPDX identifier:
 
 ```
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-CAM-Attribution
 ```
 
-This header indicates that the file is licensed under the Apache License 2.0. For an example, see [LICENSE_HEADER_EXAMPLE.ts](./src/LICENSE_HEADER_EXAMPLE.ts).
-
-## License Details
-
-### Community Edition (Apache License 2.0)
-
-The Community Edition is licensed under the [Apache License 2.0](./LICENSE), which allows you to:
-- Use the software for any purpose
-- Distribute, modify, and distribute modified versions
-- Sublicense and sell copies
-
-With the requirements that you:
-- Include the original copyright notice
-- State significant changes made to the software
-- Include the Apache License notice
-
-### Professional and Enterprise Editions (Apache License 2.0 with Commons Clause)
-
-The Professional and Enterprise Editions are licensed under the [Apache License 2.0 with Commons Clause](./LICENSE-ENTERPRISE), which includes all the permissions and requirements of the Apache License 2.0, with the additional restriction that you cannot sell the software or services that are primarily a redistribution of the software without a commercial agreement.
-
-## Commercial Licensing
-
-For commercial licensing inquiries, please contact: [sales@cam-protocol.com](mailto:EdwardsTechPros@Outlook.com)
+For files that form part of a commercial engagement covered by a separate
+agreement, use the same identifier unless otherwise specified in the contract.
 
 ## Questions
 
-If you have any questions about licensing, please open a discussion in the GitHub Discussions tab or contact us directly at the email address above.
+For any licensing questions or to validate attribution language, contact
+[EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com).

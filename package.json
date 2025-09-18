@@ -4,8 +4,8 @@
   "description": "Intelligent orchestration and collaboration for modern AI ecosystems",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "license": "Apache-2.0",
-  "author": "CAM Protocol Team",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "Andrew \"Dru\" Edwards",
   "homepage": "https://github.com/cam-protocol/complete-arbitration-mesh",
   "repository": {
     "type": "git",

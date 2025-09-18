@@ -293,4 +293,7 @@ We welcome contributions to our SDKs. Please see the contributing guidelines in 
 
 ## License
 
-All SDKs are licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for details.
+All SDKs are distributed under the proprietary
+[CAM-Attribution License](../LICENSES.md). Written permission from Andrew "Dru"
+Edwards is required prior to any use, and all approved deployments must credit
+him as the creator of the build.

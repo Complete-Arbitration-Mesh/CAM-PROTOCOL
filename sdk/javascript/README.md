@@ -842,7 +842,10 @@ generateContent('Quantum Computing Applications')
 
 ## License
 
-MIT License. See [LICENSE](./LICENSE) for details.
+Use of the JavaScript SDK is governed by the proprietary
+[CAM-Attribution License](../../LICENSE). Written permission from Andrew "Dru"
+Edwards is required before using the SDK, and all approved use must clearly
+credit him as the creator of the build.
 
 ## Support
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-CAM-Attribution
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;

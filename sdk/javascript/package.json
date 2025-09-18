@@ -29,8 +29,8 @@
     "typescript",
     "javascript"
   ],
-  "author": "CAM Team",
-  "license": "MIT",
+  "author": "Andrew \"Dru\" Edwards",
+  "license": "SEE LICENSE IN ../../LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/cam/sdk-js.git"
