@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-CAM-Attribution
 // Main entry point for the Complete Arbitration Mesh
-export { CompleteArbitrationMesh } from './core/complete-arbitration-mesh';
-export { CAMClient } from './client/cam-client';
+export { CompleteArbitrationMesh } from './core/complete-arbitration-mesh.js';
+export { CAMClient } from './client/cam-client.js';
 
 // Core types and interfaces
 export type {
@@ -12,7 +12,7 @@ export type {
   ProviderInfo,
   PolicyValidationRequest,
   PolicyValidationResult,
-  
+
   // Collaboration types
   CollaborationRequest,
   CollaborationSession,
@@ -22,7 +22,7 @@ export type {
   ComplexTask,
   TaskComponents,
   CollaborationWorkflow,
-  
+
   // Shared types
   ConfigurationUpdate,
   ConfigurationResult,
@@ -30,12 +30,12 @@ export type {
   MetricsData,
   AuthToken,
   Session
-} from './shared/types';
+} from './shared/types.js';
 
 // Utilities and helpers
-export { Logger } from './shared/logger';
-export { Config } from './shared/config';
-export { validateRequest } from './shared/validation';
+export { Logger } from './shared/logger.js';
+export { Config } from './shared/config.js';
+export { validateRequest } from './shared/validation.js';
 
 // Error classes
 export {
@@ -44,17 +44,17 @@ export {
   CollaborationError,
   AuthenticationError,
   ValidationError
-} from './shared/errors';
+} from './shared/errors.js';
 
 // Constants
-export { VERSION, API_VERSION } from './shared/constants';
+export { VERSION, API_VERSION } from './shared/constants.js';
 
 // Payment and subscription exports
 export {
   StripeService,
   SubscriptionManager,
   PaymentAPI
-} from './payment';
+} from './payment/index.js';
 
 export type {
   StripeServiceOptions,
@@ -66,4 +66,4 @@ export type {
   SubscriptionInfo,
   SubscriptionManagerOptions,
   PaymentAPIOptions
-} from './payment';
+} from './payment/index.js';

@@ -32,7 +32,7 @@ import type {
   ConfigurationResult,
   MetricsQuery,
   MetricsData
-} from '../shared/types';
+} from '../shared/types.js';
 
 export interface CompleteArbitrationMeshOptions {
   apiKey: string;

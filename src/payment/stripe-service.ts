@@ -9,8 +9,8 @@
  */
 
 import Stripe from 'stripe';
-import { Logger } from '../shared/logger';
-import { CAMError } from '../shared/errors';
+import { Logger } from '../shared/logger.js';
+import { CAMError } from '../shared/errors.js';
 
 export interface StripeServiceOptions {
   apiKey: string;
@@ -100,7 +100,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to create customer', { errorMessage, data: customerData });
-      throw new CAMError('Payment service error: Failed to create customer', errorMessage);
+      throw new CAMError(`Payment service error: Failed to create customer: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 
@@ -135,7 +135,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to create subscription', { errorMessage, subscriptionData });
-      throw new CAMError('Payment service error: Failed to create subscription', errorMessage);
+      throw new CAMError(`Payment service error: Failed to create subscription: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 
@@ -174,7 +174,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to create checkout session', { errorMessage, sessionData });
-      throw new CAMError('Payment service error: Failed to create checkout session', errorMessage);
+      throw new CAMError(`Payment service error: Failed to create checkout session: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 
@@ -213,7 +213,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to get customer', { errorMessage, customerId });
-      throw new CAMError('Payment service error: Failed to get customer', errorMessage);
+      throw new CAMError(`Payment service error: Failed to get customer: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 
@@ -226,7 +226,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to get subscription', { errorMessage, subscriptionId });
-      throw new CAMError('Payment service error: Failed to get subscription', errorMessage);
+      throw new CAMError(`Payment service error: Failed to get subscription: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 
@@ -264,7 +264,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to update subscription', { errorMessage, subscriptionId, updateData });
-      throw new CAMError('Payment service error: Failed to update subscription', errorMessage);
+      throw new CAMError(`Payment service error: Failed to update subscription: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 
@@ -277,7 +277,7 @@ export class StripeService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.logger.error('Failed to cancel subscription', { errorMessage, subscriptionId });
-      throw new CAMError('Payment service error: Failed to cancel subscription', errorMessage);
+      throw new CAMError(`Payment service error: Failed to cancel subscription: ${errorMessage}`, 'PAYMENT_ERROR');
     }
   }
 

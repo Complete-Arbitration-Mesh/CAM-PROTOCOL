@@ -3,7 +3,7 @@
  * Provides a simple interface for both routing and collaboration functionality
  */
 
-import { Logger } from '../shared/logger';
+import { Logger } from '../shared/logger.js';
 import type {
   AICoreRequest,
   AICoreResponse,
@@ -20,7 +20,7 @@ import type {
   MetricsQuery,
   MetricsData,
   AuthToken
-} from '../shared/types';
+} from '../shared/types.js';
 
 export interface CAMClientOptions {
   apiKey: string;

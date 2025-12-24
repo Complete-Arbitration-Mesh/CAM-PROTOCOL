@@ -64,7 +64,7 @@ export class AuthenticationService {
           ({ userInfo, permissions } = await this.authenticateCollaboration(request));
           break;
         default:
-          throw new CAMError('INVALID_AUTH_TYPE', `Unsupported authentication type: ${request.type}`);
+          throw new CAMError(`Unsupported authentication type: ${request.type}`, 'INVALID_AUTH_TYPE');
       }
 
       // Generate JWT token
@@ -163,7 +163,7 @@ export class AuthenticationService {
       const validation = this.validateToken(tokenString);
       
       if (!validation.valid || !validation.token || !validation.userInfo) {
-        throw new CAMError('INVALID_TOKEN', 'Cannot refresh invalid token');
+        throw new CAMError('Cannot refresh invalid token', 'INVALID_TOKEN');
       }
 
       // Generate new token
@@ -297,13 +297,13 @@ export class AuthenticationService {
   private async authenticateApiKey(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     // Simplified API key validation - in production, this would check against a database
     if (!request.credentials?.apiKey) {
-      throw new CAMError('MISSING_API_KEY', 'API key is required');
+      throw new CAMError('API key is required', 'MISSING_API_KEY');
     }
 
     // Mock validation - replace with actual API key verification
     const isValid = request.credentials.apiKey.startsWith('cam_');
     if (!isValid) {
-      throw new CAMError('INVALID_API_KEY', 'Invalid API key format');
+      throw new CAMError('Invalid API key format', 'INVALID_API_KEY');
     }
 
     const userInfo: UserInfo = {
@@ -326,7 +326,7 @@ export class AuthenticationService {
    */
   private async authenticateOAuth(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     if (!request.credentials?.accessToken) {
-      throw new CAMError('MISSING_ACCESS_TOKEN', 'OAuth access token is required');
+      throw new CAMError('OAuth access token is required', 'MISSING_ACCESS_TOKEN');
     }
 
     // Mock OAuth validation - in production, this would verify with OAuth provider
@@ -350,7 +350,7 @@ export class AuthenticationService {
    */
   private async authenticateCertificate(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     if (!request.credentials?.certificate) {
-      throw new CAMError('MISSING_CERTIFICATE', 'Client certificate is required');
+      throw new CAMError('Client certificate is required', 'MISSING_CERTIFICATE');
     }
 
     // Mock certificate validation
@@ -373,7 +373,7 @@ export class AuthenticationService {
    */
   private async authenticateCollaboration(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     if (!request.credentials?.sessionToken) {
-      throw new CAMError('MISSING_SESSION_TOKEN', 'Collaboration session token is required');
+      throw new CAMError('Collaboration session token is required', 'MISSING_SESSION_TOKEN');
     }
 
     const userInfo: UserInfo = {
@@ -397,15 +397,15 @@ export class AuthenticationService {
    */
   private validateAuthRequest(request: AuthRequest): void {
     if (!request.clientId) {
-      throw new CAMError('MISSING_CLIENT_ID', 'Client ID is required');
+      throw new CAMError('Client ID is required', 'MISSING_CLIENT_ID');
     }
 
     if (!request.type) {
-      throw new CAMError('MISSING_AUTH_TYPE', 'Authentication type is required');
+      throw new CAMError('Authentication type is required', 'MISSING_AUTH_TYPE');
     }
 
     if (!request.credentials) {
-      throw new CAMError('MISSING_CREDENTIALS', 'Credentials are required');
+      throw new CAMError('Credentials are required', 'MISSING_CREDENTIALS');
     }
   }
 

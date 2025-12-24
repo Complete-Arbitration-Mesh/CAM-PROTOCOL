@@ -74,7 +74,7 @@ export class StateManager {
       this.logger.debug('Route state updated', { routeId, state });
     } catch (error) {
       this.logger.error('Failed to set route state', { routeId, error });
-      throw new CAMError('STATE_UPDATE_FAILED', `Failed to update route state: ${error}`);
+      throw new CAMError(`Failed to update route state: ${error}`, 'STATE_UPDATE_FAILED');
     }
   }
 
@@ -110,7 +110,7 @@ export class StateManager {
       this.logger.debug('Collaboration state updated', { sessionId, state });
     } catch (error) {
       this.logger.error('Failed to set collaboration state', { sessionId, error });
-      throw new CAMError('STATE_UPDATE_FAILED', `Failed to update collaboration state: ${error}`);
+      throw new CAMError(`Failed to update collaboration state: ${error}`, 'STATE_UPDATE_FAILED');
     }
   }
 
@@ -240,7 +240,7 @@ export class StateManager {
       return true;
     } catch (error) {
       this.logger.error('Failed to restore from snapshot', { timestamp, error });
-      throw new CAMError('STATE_RESTORE_FAILED', `Failed to restore state: ${error}`);
+      throw new CAMError(`Failed to restore state: ${error}`, 'STATE_RESTORE_FAILED');
     }
   }
 
@@ -313,14 +313,17 @@ export class StateManager {
 
   /**
    * Shutdown and cleanup
+   * Note: Data is persisted BEFORE clearing to preserve state for next load
    */
   shutdown(): void {
+    // Persist current state before shutdown
+    this.persist();
+
+    // Clear in-memory data
     this.routeStates.clear();
     this.collaborationStates.clear();
     this.snapshots.length = 0;
     this.listeners.clear();
-
-    this.persist();
 
     this.logger.info('State Manager shutdown complete');
   }
@@ -358,7 +361,7 @@ export class StateManager {
       return result;
     } catch (error) {
       this.logger.error('Configuration update failed', { error });
-      throw new CAMError('CONFIG_UPDATE_FAILED', `Failed to update configuration: ${error}`);
+      throw new CAMError(`Failed to update configuration: ${error}`, 'CONFIG_UPDATE_FAILED');
     }
   }
 
@@ -398,7 +401,7 @@ export class StateManager {
       };
     } catch (error) {
       this.logger.error('Failed to get metrics', { error });
-      throw new CAMError('METRICS_FAILED', `Failed to get metrics: ${error}`);
+      throw new CAMError(`Failed to get metrics: ${error}`, 'METRICS_FAILED');
     }
   }
 

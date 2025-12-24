@@ -135,18 +135,18 @@ export class CollaborationEngine {
   }
   private async validateCollaborationRequest(request: CollaborationRequest): Promise<void> {
     if (!request.task || typeof request.task !== 'string') {
-      throw new CAMError('INVALID_REQUEST', 'Invalid request: task is required');
+      throw new CAMError('Invalid request: task is required', 'INVALID_REQUEST');
     }
 
     if (!Array.isArray(request.requirements) || request.requirements.length === 0) {
-      throw new CAMError('INVALID_REQUEST', 'Invalid request: requirements array is required and must not be empty');
+      throw new CAMError('Invalid request: requirements array is required and must not be empty', 'INVALID_REQUEST');
     }
   }
 
   private async findSuitableAgents(requirements: string[]): Promise<AgentInfo[]> {
     const agents = this.registry.findAgents(requirements);
     if (agents.length === 0) {
-      throw new CAMError('AGENT_UNAVAILABLE', 'No suitable agents found');
+      throw new CAMError('No suitable agents found', 'AGENT_UNAVAILABLE');
     }
     return agents;
   }
@@ -180,7 +180,7 @@ export class CollaborationEngine {
   }
   private async validateWorkflow(workflow: CollaborationWorkflow): Promise<void> {
     if (!workflow.id || !workflow.name || !workflow.steps || workflow.steps.length === 0) {
-      throw new CAMError('INVALID_WORKFLOW', 'Invalid workflow: missing required fields');
+      throw new CAMError('Invalid workflow: missing required fields', 'INVALID_WORKFLOW');
     }
   }
 

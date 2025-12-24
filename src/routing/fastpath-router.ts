@@ -21,8 +21,8 @@ import fetch from 'node-fetch';
 export class FastPathRouter {
   private logger: Logger;
   private providerConfigs: Record<string, ProviderConfig> = {};
-  constructor() {
-    this.logger = new Logger('info'); // Initialize with a valid LogLevel
+  constructor(logger?: Logger) {
+    this.logger = logger || new Logger('info');
     this.logger.info('FastPath Router initialized');
   }
 
@@ -34,7 +34,7 @@ export class FastPathRouter {
       await this.validateRequest(request);      // 2. Apply policies
       const policyResult = await this.applyPolicies(request);
       if (!policyResult.allowed) {
-        throw new CAMError('POLICY_VIOLATION', `Policy violation: ${policyResult.reason}`);
+        throw new CAMError(`Policy violation: ${policyResult.reason}`, 'POLICY_VIOLATION');
       }
 
       // 3. Select optimal provider
@@ -60,7 +60,7 @@ export class FastPathRouter {
     const providers = await this.getAvailableProviders();
     
     if (providers.length === 0) {
-      throw new CAMError('NO_PROVIDERS_AVAILABLE', 'No AI providers are currently available');
+      throw new CAMError('No AI providers are currently available', 'NO_PROVIDERS_AVAILABLE');
     }
 
     // Filter providers based on requirements
@@ -83,7 +83,7 @@ export class FastPathRouter {
     });
 
     if (eligibleProviders.length === 0) {
-      throw new CAMError('NO_MATCHING_PROVIDERS', 'No providers match the specified requirements');
+      throw new CAMError('No providers match the specified requirements', 'NO_MATCHING_PROVIDERS');
     }
 
     // Apply scoring based on cost and performance requirements
@@ -134,7 +134,7 @@ export class FastPathRouter {
     scoredProviders.sort((a: {provider: ProviderInfo, score: number}, b: {provider: ProviderInfo, score: number}) => b.score - a.score);
     
     if (scoredProviders.length === 0) {
-      throw new CAMError('NO_ELIGIBLE_PROVIDERS', 'No providers match the specified requirements');
+      throw new CAMError('No providers match the specified requirements', 'NO_ELIGIBLE_PROVIDERS');
     }
     
     // We know scoredProviders has at least one element because we checked length > 0
@@ -240,7 +240,7 @@ export class FastPathRouter {
   }
   private async validateRequest(request: AICoreRequest): Promise<void> {
     if (!request.prompt || typeof request.prompt !== 'string') {
-      throw new CAMError('INVALID_REQUEST', 'Invalid request: prompt is required');
+      throw new CAMError('Invalid request: prompt is required', 'INVALID_REQUEST');
     }
   }
 
@@ -463,7 +463,7 @@ export class FastPathRouter {
           response = await this.executeAzureRequest(request, provider, model);
           break;
         default:
-          throw new CAMError('UNSUPPORTED_PROVIDER', `Provider type ${provider.type} is not supported`);
+          throw new CAMError(`Provider type ${provider.type} is not supported`, 'UNSUPPORTED_PROVIDER');
       }
       
       const endTime = Date.now();
@@ -522,7 +522,7 @@ export class FastPathRouter {
    */
   private async executeOpenAIRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
     const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError('CONFIG_NOT_FOUND', `Missing configuration for provider ${provider.id}`);
+    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
 
     const endpoint = cfg.endpoint || 'https://api.openai.com/v1/chat/completions';
 
@@ -541,7 +541,7 @@ export class FastPathRouter {
         })
       });      const data = await res.json() as any;
       if (!res.ok) {
-        throw new CAMError('PROVIDER_ERROR', data.error?.message || 'OpenAI request failed');
+        throw new CAMError(data.error?.message || 'OpenAI request failed', 'PROVIDER_ERROR');
       }
 
       return {
@@ -562,7 +562,7 @@ export class FastPathRouter {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new CAMError('PROVIDER_ERROR', message);
+      throw new CAMError(message, 'PROVIDER_ERROR');
     }
   }
   
@@ -572,7 +572,7 @@ export class FastPathRouter {
    */
   private async executeAnthropicRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
     const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError('CONFIG_NOT_FOUND', `Missing configuration for provider ${provider.id}`);
+    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
 
     const endpoint = cfg.endpoint || 'https://api.anthropic.com/v1/messages';
 
@@ -592,7 +592,7 @@ export class FastPathRouter {
         })
       });      const data = await res.json() as any;
       if (!res.ok) {
-        throw new CAMError('PROVIDER_ERROR', data.error?.message || 'Anthropic request failed');
+        throw new CAMError(data.error?.message || 'Anthropic request failed', 'PROVIDER_ERROR');
       }
 
       const content = Array.isArray(data.content) ? data.content.map((p: any) => p.text).join(' ') : data.content?.[0]?.text || '';
@@ -615,7 +615,7 @@ export class FastPathRouter {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new CAMError('PROVIDER_ERROR', message);
+      throw new CAMError(message, 'PROVIDER_ERROR');
     }
   }
   
@@ -625,7 +625,7 @@ export class FastPathRouter {
    */
   private async executeGoogleRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
     const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError('CONFIG_NOT_FOUND', `Missing configuration for provider ${provider.id}`);
+    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
 
     const urlBase = cfg.endpoint || 'https://generativelanguage.googleapis.com/v1beta';
     const url = `${urlBase}/models/${model}:generateContent?key=${cfg.apiKey}`;
@@ -641,7 +641,7 @@ export class FastPathRouter {
         })
       });      const data = await res.json() as any;
       if (!res.ok) {
-        throw new CAMError('PROVIDER_ERROR', data.error?.message || 'Google request failed');
+        throw new CAMError(data.error?.message || 'Google request failed', 'PROVIDER_ERROR');
       }
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -662,7 +662,7 @@ export class FastPathRouter {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new CAMError('PROVIDER_ERROR', message);
+      throw new CAMError(message, 'PROVIDER_ERROR');
     }
   }
   
@@ -672,7 +672,7 @@ export class FastPathRouter {
    */
   private async executeAzureRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
     const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError('CONFIG_NOT_FOUND', `Missing configuration for provider ${provider.id}`);
+    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
 
     const url = `${cfg.endpoint}/openai/deployments/${model}/chat/completions?api-version=2023-05-15`;
 
@@ -690,7 +690,7 @@ export class FastPathRouter {
         })
       });      const data = await res.json() as any;
       if (!res.ok) {
-        throw new CAMError('PROVIDER_ERROR', data.error?.message || 'Azure request failed');
+        throw new CAMError(data.error?.message || 'Azure request failed', 'PROVIDER_ERROR');
       }
 
       return {
@@ -712,7 +712,7 @@ export class FastPathRouter {
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      throw new CAMError('PROVIDER_ERROR', message);
+      throw new CAMError(message, 'PROVIDER_ERROR');
     }
   }
 

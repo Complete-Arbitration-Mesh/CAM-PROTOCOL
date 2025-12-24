@@ -5,9 +5,9 @@
  * based on subscription status.
  */
 
-import { Logger } from '../shared/logger';
-import { CAMError } from '../shared/errors';
-import { StripeService } from './stripe-service';
+import { Logger } from '../shared/logger.js';
+import { CAMError } from '../shared/errors.js';
+import { StripeService } from './stripe-service.js';
 
 export type SubscriptionTier = 'community' | 'professional' | 'enterprise';
 

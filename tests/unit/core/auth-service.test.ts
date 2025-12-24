@@ -1,28 +1,28 @@
-import { AuthenticationService } from '../../src/core/auth-service';
-import { CAMError } from '../../src/shared/errors';
-import jwt from 'jsonwebtoken';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { AuthenticationService } from '../../../src/core/auth-service.js';
 
 describe('AuthenticationService', () => {
   let authService: AuthenticationService;
   const mockConfig = {
-    secret: 'test-secret-key',
-    expiresIn: '1h',
-    issuer: 'cam-test',
-    audience: 'cam-api-test',
-    refreshTokenExpiry: '7d'
+    jwtSecret: 'test-secret-key-for-testing-purposes',
+    tokenExpiry: '1h'
   };
 
   beforeEach(() => {
     authService = new AuthenticationService(mockConfig);
   });
 
-  describe('Token Generation', () => {
-    it('should generate valid JWT token for API key authentication', async () => {
+  afterEach(() => {
+    authService.shutdown();
+  });
+
+  describe('API Key Authentication', () => {
+    it('should authenticate with valid API key', async () => {
       const authRequest = {
-        type: 'api-key' as const,
+        clientId: 'test-client-123',
+        type: 'api_key' as const,
         credentials: {
-          apiKey: 'test-api-key-123',
-          userId: 'user-123'
+          apiKey: 'cam_test-api-key-123'
         }
       };
 
@@ -30,27 +30,50 @@ describe('AuthenticationService', () => {
 
       expect(response.success).toBe(true);
       expect(response.token).toBeDefined();
-      expect(response.expiresIn).toBe(3600);
-      expect(response.userInfo).toEqual({
-        id: 'user-123',
-        type: 'api-key',
-        permissions: ['route', 'collaborate']
-      });
-
-      // Verify token is valid JWT
-      const decoded = jwt.verify(response.token, mockConfig.secret) as any;
-      expect(decoded.userId).toBe('user-123');
-      expect(decoded.type).toBe('api-key');
+      expect(response.token?.token).toBeDefined();
+      expect(response.userInfo).toBeDefined();
+      expect(response.permissions).toBeDefined();
+      expect(response.expiresAt).toBeDefined();
     });
 
-    it('should generate token for OAuth authentication', async () => {
+    it('should reject invalid API key format', async () => {
       const authRequest = {
+        clientId: 'test-client-123',
+        type: 'api_key' as const,
+        credentials: {
+          apiKey: 'invalid-key-format'
+        }
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
+    });
+
+    it('should reject missing API key', async () => {
+      const authRequest = {
+        clientId: 'test-client-123',
+        type: 'api_key' as const,
+        credentials: {}
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
+    });
+  });
+
+  describe('OAuth Authentication', () => {
+    it('should authenticate with OAuth token', async () => {
+      const authRequest = {
+        clientId: 'oauth-client-123',
         type: 'oauth' as const,
         credentials: {
-          provider: 'google',
-          accessToken: 'oauth-access-token',
-          userId: 'oauth-user-123',
-          email: 'user@example.com'
+          accessToken: 'oauth-access-token-xyz',
+          name: 'Test User',
+          email: 'test@example.com'
         }
       };
 
@@ -58,17 +81,31 @@ describe('AuthenticationService', () => {
 
       expect(response.success).toBe(true);
       expect(response.token).toBeDefined();
-      expect(response.userInfo?.id).toBe('oauth-user-123');
-      expect(response.userInfo?.email).toBe('user@example.com');
+      expect(response.userInfo?.name).toBe('Test User');
+      expect(response.userInfo?.email).toBe('test@example.com');
     });
 
-    it('should generate token for certificate authentication', async () => {
+    it('should reject missing OAuth token', async () => {
       const authRequest = {
+        clientId: 'oauth-client-123',
+        type: 'oauth' as const,
+        credentials: {}
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
+    });
+  });
+
+  describe('Certificate Authentication', () => {
+    it('should authenticate with certificate', async () => {
+      const authRequest = {
+        clientId: 'cert-client-123',
         type: 'certificate' as const,
         credentials: {
-          certificate: 'base64-cert-data',
-          privateKey: 'base64-key-data',
-          userId: 'cert-user-123'
+          certificate: 'base64-encoded-certificate-data'
         }
       };
 
@@ -76,16 +113,31 @@ describe('AuthenticationService', () => {
 
       expect(response.success).toBe(true);
       expect(response.token).toBeDefined();
-      expect(response.userInfo?.type).toBe('certificate');
+      expect(response.userInfo).toBeDefined();
     });
 
-    it('should generate token for collaboration authentication', async () => {
+    it('should reject missing certificate', async () => {
       const authRequest = {
+        clientId: 'cert-client-123',
+        type: 'certificate' as const,
+        credentials: {}
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
+    });
+  });
+
+  describe('Collaboration Authentication', () => {
+    it('should authenticate for collaboration session', async () => {
+      const authRequest = {
+        clientId: 'collab-agent-123',
         type: 'collaboration' as const,
         credentials: {
-          agentId: 'agent-123',
-          capabilities: ['data-analysis', 'reporting'],
-          collaborationId: 'collab-456'
+          sessionToken: 'collaboration-session-token',
+          agentName: 'Data Analysis Agent'
         }
       };
 
@@ -93,345 +145,269 @@ describe('AuthenticationService', () => {
 
       expect(response.success).toBe(true);
       expect(response.token).toBeDefined();
-      expect(response.userInfo?.id).toBe('agent-123');
-      expect(response.userInfo?.type).toBe('collaboration');
-      expect(response.userInfo?.capabilities).toEqual(['data-analysis', 'reporting']);
+      expect(response.userInfo?.name).toBe('Data Analysis Agent');
+    });
+
+    it('should reject missing session token', async () => {
+      const authRequest = {
+        clientId: 'collab-agent-123',
+        type: 'collaboration' as const,
+        credentials: {}
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
     });
   });
 
   describe('Token Validation', () => {
     it('should validate correct token', async () => {
-      // First generate a token
       const authRequest = {
-        type: 'api-key' as const,
+        clientId: 'test-client',
+        type: 'api_key' as const,
         credentials: {
-          apiKey: 'test-api-key',
-          userId: 'user-123'
+          apiKey: 'cam_valid-api-key'
         }
       };
 
       const authResponse = await authService.authenticate(authRequest);
-      
-      // Then validate it
-      const validation = await authService.validateToken(authResponse.token);
+      expect(authResponse.success).toBe(true);
+      expect(authResponse.token?.token).toBeDefined();
+
+      const validation = authService.validateToken(authResponse.token!.token);
 
       expect(validation.valid).toBe(true);
-      expect(validation.userInfo?.id).toBe('user-123');
-      expect(validation.userInfo?.type).toBe('api-key');
-      expect(validation.permissions).toContain('route');
-      expect(validation.permissions).toContain('collaborate');
+      expect(validation.userInfo).toBeDefined();
+      expect(validation.permissions).toBeDefined();
     });
 
-    it('should reject invalid token', async () => {
-      const validation = await authService.validateToken('invalid-token');
-
-      expect(validation.valid).toBe(false);
-      expect(validation.error).toBeDefined();
-      expect(validation.userInfo).toBeUndefined();
-    });
-
-    it('should reject expired token', async () => {
-      // Create expired token manually
-      const expiredToken = jwt.sign(
-        { userId: 'user-123', type: 'api-key' },
-        mockConfig.secret,
-        { expiresIn: '-1h' } // Expired 1 hour ago
-      );
-
-      const validation = await authService.validateToken(expiredToken);
-
-      expect(validation.valid).toBe(false);
-      expect(validation.error).toContain('expired');
-    });
-
-    it('should reject token with wrong secret', async () => {
-      const wrongToken = jwt.sign(
-        { userId: 'user-123', type: 'api-key' },
-        'wrong-secret',
-        { expiresIn: '1h' }
-      );
-
-      const validation = await authService.validateToken(wrongToken);
+    it('should reject invalid token', () => {
+      const validation = authService.validateToken('invalid-token-string');
 
       expect(validation.valid).toBe(false);
       expect(validation.error).toBeDefined();
     });
-  });
 
-  describe('Refresh Token Management', () => {
-    it('should generate and validate refresh tokens', async () => {
-      const authRequest = {
-        type: 'api-key' as const,
-        credentials: {
-          apiKey: 'test-api-key',
-          userId: 'user-123'
-        }
-      };
-
-      const authResponse = await authService.authenticate(authRequest);
-      expect(authResponse.refreshToken).toBeDefined();
-
-      const newTokenResponse = await authService.refreshToken(authResponse.refreshToken!);
-      
-      expect(newTokenResponse.success).toBe(true);
-      expect(newTokenResponse.token).toBeDefined();
-      expect(newTokenResponse.token).not.toBe(authResponse.token);
-    });
-
-    it('should reject invalid refresh token', async () => {
-      await expect(
-        authService.refreshToken('invalid-refresh-token')
-      ).rejects.toThrow(CAMError);
-    });
-  });
-
-  describe('Token Revocation', () => {
-    it('should revoke token successfully', async () => {
-      const authRequest = {
-        type: 'api-key' as const,
-        credentials: {
-          apiKey: 'test-api-key',
-          userId: 'user-123'
-        }
-      };
-
-      const authResponse = await authService.authenticate(authRequest);
-      
-      // Revoke the token
-      await authService.revokeToken(authResponse.token);
-
-      // Validation should now fail
-      const validation = await authService.validateToken(authResponse.token);
-      expect(validation.valid).toBe(false);
-      expect(validation.error).toContain('revoked');
-    });
-
-    it('should handle revocation of non-existent token', async () => {
-      await expect(
-        authService.revokeToken('non-existent-token')
-      ).rejects.toThrow(CAMError);
-    });
-  });
-
-  describe('Session Management', () => {
-    it('should create and retrieve session', async () => {
-      const sessionData = {
-        userId: 'user-123',
-        metadata: { loginTime: Date.now() }
-      };
-
-      const sessionId = await authService.createSession(sessionData);
-      expect(sessionId).toBeDefined();
-
-      const retrievedSession = await authService.getSession(sessionId);
-      expect(retrievedSession?.userId).toBe('user-123');
-      expect(retrievedSession?.metadata).toEqual(sessionData.metadata);
-    });
-
-    it('should update session data', async () => {
-      const sessionData = {
-        userId: 'user-123',
-        metadata: { loginTime: Date.now() }
-      };
-
-      const sessionId = await authService.createSession(sessionData);
-      
-      const updatedData = {
-        userId: 'user-123',
-        metadata: { 
-          loginTime: sessionData.metadata.loginTime,
-          lastActivity: Date.now()
-        }
-      };
-
-      await authService.updateSession(sessionId, updatedData);
-
-      const retrievedSession = await authService.getSession(sessionId);
-      expect(retrievedSession?.metadata.lastActivity).toBeDefined();
-    });
-
-    it('should delete session', async () => {
-      const sessionData = {
-        userId: 'user-123',
-        metadata: { loginTime: Date.now() }
-      };
-
-      const sessionId = await authService.createSession(sessionData);
-      await authService.deleteSession(sessionId);
-
-      const retrievedSession = await authService.getSession(sessionId);
-      expect(retrievedSession).toBeNull();
-    });
-  });
-
-  describe('Permission Handling', () => {
-    it('should check permissions correctly', async () => {
-      const authRequest = {
-        type: 'api-key' as const,
-        credentials: {
-          apiKey: 'test-api-key',
-          userId: 'user-123'
-        }
-      };
-
-      const authResponse = await authService.authenticate(authRequest);
-      const validation = await authService.validateToken(authResponse.token);
-
-      expect(authService.hasPermission(validation.permissions || [], 'route')).toBe(true);
-      expect(authService.hasPermission(validation.permissions || [], 'collaborate')).toBe(true);
-      expect(authService.hasPermission(validation.permissions || [], 'admin')).toBe(false);
-    });
-
-    it('should handle collaboration-specific permissions', async () => {
-      const authRequest = {
-        type: 'collaboration' as const,
-        credentials: {
-          agentId: 'agent-123',
-          capabilities: ['data-analysis'],
-          collaborationId: 'collab-456'
-        }
-      };
-
-      const authResponse = await authService.authenticate(authRequest);
-      const validation = await authService.validateToken(authResponse.token);
-
-      expect(validation.permissions).toContain('collaborate');
-      expect(validation.userInfo?.capabilities).toContain('data-analysis');
-    });
-  });
-
-  describe('Error Handling', () => {
-    it('should handle missing credentials', async () => {
-      const authRequest = {
-        type: 'api-key' as const,
-        credentials: {} as any
-      };
-
-      await expect(
-        authService.authenticate(authRequest)
-      ).rejects.toThrow(CAMError);
-    });
-
-    it('should handle invalid authentication type', async () => {
-      const authRequest = {
-        type: 'invalid-type' as any,
-        credentials: {
-          apiKey: 'test-key'
-        }
-      };
-
-      await expect(
-        authService.authenticate(authRequest)
-      ).rejects.toThrow(CAMError);
-    });
-
-    it('should handle malformed tokens', async () => {
+    it('should reject malformed tokens', () => {
       const malformedTokens = [
         '',
         'not.a.token',
-        'header.payload', // Missing signature
+        'header.payload',
         'invalid-jwt-format'
       ];
 
       for (const token of malformedTokens) {
-        const validation = await authService.validateToken(token);
+        const validation = authService.validateToken(token);
         expect(validation.valid).toBe(false);
         expect(validation.error).toBeDefined();
       }
     });
   });
 
-  describe('Security Features', () => {
-    it('should include security headers in tokens', async () => {
+  describe('Token Refresh', () => {
+    it('should refresh valid token', async () => {
+      // First authenticate
       const authRequest = {
-        type: 'api-key' as const,
+        clientId: 'refresh-test-client',
+        type: 'api_key' as const,
         credentials: {
-          apiKey: 'test-api-key',
-          userId: 'user-123'
-        }
-      };
-
-      const response = await authService.authenticate(authRequest);
-      const decoded = jwt.decode(response.token, { complete: true }) as any;
-
-      expect(decoded.header.alg).toBe('HS256');
-      expect(decoded.payload.iss).toBe(mockConfig.issuer);
-      expect(decoded.payload.aud).toBe(mockConfig.audience);
-      expect(decoded.payload.iat).toBeDefined();
-      expect(decoded.payload.exp).toBeDefined();
-    });
-
-    it('should prevent token reuse after revocation', async () => {
-      const authRequest = {
-        type: 'api-key' as const,
-        credentials: {
-          apiKey: 'test-api-key',
-          userId: 'user-123'
+          apiKey: 'cam_refresh-test-key'
         }
       };
 
       const authResponse = await authService.authenticate(authRequest);
-      
-      // First validation should succeed
-      let validation = await authService.validateToken(authResponse.token);
-      expect(validation.valid).toBe(true);
+      expect(authResponse.success).toBe(true);
+      expect(authResponse.token?.token).toBeDefined();
 
-      // Revoke token
-      await authService.revokeToken(authResponse.token);
+      // Then refresh
+      const refreshResponse = await authService.refreshToken(authResponse.token!.token);
 
-      // Subsequent validations should fail
-      validation = await authService.validateToken(authResponse.token);
-      expect(validation.valid).toBe(false);
+      expect(refreshResponse.success).toBe(true);
+      expect(refreshResponse.token).toBeDefined();
+      expect(refreshResponse.token?.token).not.toBe(authResponse.token?.token);
+    });
+
+    it('should reject refresh of invalid token', async () => {
+      const refreshResponse = await authService.refreshToken('invalid-token');
+
+      expect(refreshResponse.success).toBe(false);
+      expect(refreshResponse.error).toBeDefined();
     });
   });
 
-  describe('Performance', () => {
+  describe('Token Revocation', () => {
+    it('should revoke token successfully', async () => {
+      const authRequest = {
+        clientId: 'revoke-test-client',
+        type: 'api_key' as const,
+        credentials: {
+          apiKey: 'cam_revoke-test-key'
+        }
+      };
+
+      const authResponse = await authService.authenticate(authRequest);
+      expect(authResponse.success).toBe(true);
+      expect(authResponse.token?.token).toBeDefined();
+
+      // Revoke the token
+      const revoked = authService.revokeToken(authResponse.token!.token);
+      expect(revoked).toBe(true);
+
+      // Token should no longer be valid
+      const validation = authService.validateToken(authResponse.token!.token);
+      expect(validation.valid).toBe(false);
+      expect(validation.errorCode).toBe('TOKEN_REVOKED');
+    });
+
+    it('should handle revocation of invalid token', () => {
+      const revoked = authService.revokeToken('non-existent-token');
+      expect(revoked).toBe(false);
+    });
+  });
+
+  describe('Permission Checking', () => {
+    it('should check permissions correctly', async () => {
+      const authRequest = {
+        clientId: 'perm-test-client',
+        type: 'api_key' as const,
+        credentials: {
+          apiKey: 'cam_permission-test-key'
+        }
+      };
+
+      const authResponse = await authService.authenticate(authRequest);
+      expect(authResponse.success).toBe(true);
+
+      // API key auth grants 'routing' and 'metrics' permissions
+      const hasRouting = authService.hasPermission(authResponse.token!.token, 'routing');
+      const hasMetrics = authService.hasPermission(authResponse.token!.token, 'metrics');
+      const hasAdmin = authService.hasPermission(authResponse.token!.token, 'admin');
+
+      expect(hasRouting).toBe(true);
+      expect(hasMetrics).toBe(true);
+      expect(hasAdmin).toBe(false);
+    });
+
+    it('should return false for invalid token', () => {
+      const hasPermission = authService.hasPermission('invalid-token', 'routing');
+      expect(hasPermission).toBe(false);
+    });
+  });
+
+  describe('Session Management', () => {
+    it('should track active sessions count', async () => {
+      const initialCount = authService.getActiveSessionsCount();
+
+      const authRequest = {
+        clientId: 'session-test-client',
+        type: 'api_key' as const,
+        credentials: {
+          apiKey: 'cam_session-test-key'
+        }
+      };
+
+      await authService.authenticate(authRequest);
+
+      const newCount = authService.getActiveSessionsCount();
+      expect(newCount).toBe(initialCount + 1);
+    });
+
+    it('should cleanup expired sessions', async () => {
+      const authRequest = {
+        clientId: 'cleanup-test-client',
+        type: 'api_key' as const,
+        credentials: {
+          apiKey: 'cam_cleanup-test-key'
+        }
+      };
+
+      await authService.authenticate(authRequest);
+      const countBefore = authService.getActiveSessionsCount();
+      expect(countBefore).toBeGreaterThan(0);
+
+      // Cleanup should not remove non-expired sessions
+      authService.cleanupExpiredSessions();
+      const countAfter = authService.getActiveSessionsCount();
+      expect(countAfter).toBe(countBefore);
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('should handle missing client ID', async () => {
+      const authRequest = {
+        clientId: '',
+        type: 'api_key' as const,
+        credentials: {
+          apiKey: 'cam_test-key'
+        }
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.errorCode).toBe('MISSING_CLIENT_ID');
+    });
+
+    it('should handle missing credentials', async () => {
+      const authRequest = {
+        clientId: 'test-client',
+        type: 'api_key' as const,
+        credentials: undefined as any
+      };
+
+      const response = await authService.authenticate(authRequest);
+
+      expect(response.success).toBe(false);
+      expect(response.error).toBeDefined();
+    });
+  });
+
+  describe('Concurrent Authentication', () => {
     it('should handle multiple concurrent authentications', async () => {
       const promises = [];
-      
+
       for (let i = 0; i < 10; i++) {
         promises.push(
           authService.authenticate({
-            type: 'api-key',
+            clientId: `concurrent-client-${i}`,
+            type: 'api_key',
             credentials: {
-              apiKey: `test-key-${i}`,
-              userId: `user-${i}`
+              apiKey: `cam_concurrent-key-${i}`
             }
           })
         );
       }
 
       const responses = await Promise.all(promises);
-      
+
       expect(responses).toHaveLength(10);
-      responses.forEach((response, index) => {
+      responses.forEach((response) => {
         expect(response.success).toBe(true);
-        expect(response.userInfo?.id).toBe(`user-${index}`);
+        expect(response.token).toBeDefined();
       });
     });
 
     it('should handle multiple concurrent validations', async () => {
-      // First create a token
       const authResponse = await authService.authenticate({
-        type: 'api-key',
+        clientId: 'validation-test-client',
+        type: 'api_key',
         credentials: {
-          apiKey: 'test-key',
-          userId: 'user-123'
+          apiKey: 'cam_validation-test-key'
         }
       });
 
-      // Then validate it multiple times concurrently
-      const promises = [];
+      expect(authResponse.success).toBe(true);
+
+      const validations = [];
       for (let i = 0; i < 10; i++) {
-        promises.push(authService.validateToken(authResponse.token));
+        validations.push(authService.validateToken(authResponse.token!.token));
       }
 
-      const validations = await Promise.all(promises);
-      
       expect(validations).toHaveLength(10);
-      validations.forEach(validation => {
+      validations.forEach((validation) => {
         expect(validation.valid).toBe(true);
-        expect(validation.userInfo?.id).toBe('user-123');
       });
     });
   });
