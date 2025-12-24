@@ -1,4 +1,4 @@
-import type { AgentInfo, AgentCapabilities } from '../shared/types.js';
+import type { AgentInfo } from '../shared/types.js';
 
 /**
  * Simple in-memory registry used for tests and local execution.

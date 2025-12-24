@@ -18,8 +18,7 @@ import type {
   ProviderRequirements,
   ProviderInfo,
   MetricsQuery,
-  MetricsData,
-  AuthToken
+  MetricsData
 } from '../shared/types.js';
 
 export interface CAMClientOptions {
