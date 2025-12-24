@@ -64,7 +64,7 @@ export class FastPathRouter {
     }
 
     // Filter providers based on requirements
-    let eligibleProviders = providers.filter((provider: ProviderInfo) => {
+    const eligibleProviders = providers.filter((provider: ProviderInfo) => {
       // Filter by status - only use available or degraded providers
       if (provider.status === 'unavailable') return false;
       
@@ -302,7 +302,7 @@ export class FastPathRouter {
     // For now, implement simple policy checks
     
     switch (policy) {
-      case 'content-safety':
+      case 'content-safety': {
         // Check for prohibited content in the request
         const content = request.request.prompt;
         if (content && this.containsProhibitedContent(content)) {
@@ -313,6 +313,7 @@ export class FastPathRouter {
           };
         }
         break;
+      }
         
       case 'token-quota':
         // Check if user has exceeded their token quota
