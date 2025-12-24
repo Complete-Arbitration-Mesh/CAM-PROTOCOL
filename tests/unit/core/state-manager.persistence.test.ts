@@ -1,7 +1,10 @@
+import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import fs from 'fs';
+import path from 'path';
 import { StateManager } from '../../../src/core/state-manager.js';
 
-const testFile = 'tmp/state-manager-persistence.json';
+const testDir = 'tmp';
+const testFile = path.join(testDir, 'state-manager-persistence.json');
 
 function cleanup() {
   if (fs.existsSync(testFile)) {
@@ -9,7 +12,16 @@ function cleanup() {
   }
 }
 
+function ensureDir() {
+  if (!fs.existsSync(testDir)) {
+    fs.mkdirSync(testDir, { recursive: true });
+  }
+}
+
 describe('StateManager persistence', () => {
+  beforeAll(() => {
+    ensureDir();
+  });
   afterEach(() => {
     cleanup();
   });

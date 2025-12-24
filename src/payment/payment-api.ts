@@ -6,10 +6,10 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { StripeService } from './stripe-service';
-import { SubscriptionManager, SubscriptionTier } from './subscription-manager';
-import { Logger } from '../shared/logger';
-import { CAMError } from '../shared/errors';
+import { StripeService } from './stripe-service.js';
+import { SubscriptionManager, SubscriptionTier } from './subscription-manager.js';
+import { Logger } from '../shared/logger.js';
+import { CAMError } from '../shared/errors.js';
 
 export interface PaymentAPIOptions {
   stripeService: StripeService;
