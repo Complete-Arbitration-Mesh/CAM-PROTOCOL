@@ -20,6 +20,7 @@ import fetch from 'node-fetch';
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { CacheManager, CacheStats } from './cache-manager.js';
+import { RateLimiter, RateLimitConfig, RateLimitStats } from './rate-limiter.js';
 
 // Provider health metrics for real-time monitoring
 interface ProviderHealthMetrics {
@@ -36,6 +37,7 @@ export interface FastPathRouterOptions {
   cacheEnabled?: boolean;
   cacheMaxEntries?: number;
   cacheTtlMs?: number;
+  rateLimitConfig?: RateLimitConfig;
 }
 
 export class FastPathRouter {
@@ -45,6 +47,7 @@ export class FastPathRouter {
   private openaiClients: Map<string, OpenAI> = new Map();
   private anthropicClients: Map<string, Anthropic> = new Map();
   private cacheManager: CacheManager;
+  private rateLimiter: RateLimiter;
   private readonly MAX_LATENCY_SAMPLES = 100;  // Keep last 100 latencies for percentile calc
   private readonly ERROR_RATE_THRESHOLD = 0.1;  // 10% error rate triggers degradation
 
@@ -53,6 +56,10 @@ export class FastPathRouter {
     if (options instanceof Logger) {
       this.logger = options;
       this.cacheManager = new CacheManager();
+      this.rateLimiter = new RateLimiter({
+        enabled: true,
+        requestsPerMinute: 100
+      });
     } else {
       this.logger = options.logger || new Logger('info');
       this.cacheManager = new CacheManager({
@@ -60,8 +67,17 @@ export class FastPathRouter {
         maxEntries: options.cacheMaxEntries ?? 1000,
         defaultTtlMs: options.cacheTtlMs ?? 5 * 60 * 1000
       });
+      this.rateLimiter = new RateLimiter(options.rateLimitConfig ?? {
+        enabled: true,
+        requestsPerMinute: 100,
+        requestsPerMinuteByTier: {
+          community: 60,
+          professional: 300,
+          enterprise: 1000
+        }
+      });
     }
-    this.logger.info('FastPath Router initialized with SDK and caching support');
+    this.logger.info('FastPath Router initialized with SDK, caching, and rate limiting');
   }
 
   /**
@@ -144,6 +160,26 @@ export class FastPathRouter {
     this.logger.debug('FastPath routing request', { request });
 
     try {
+      // 0. Check rate limits first (before any processing)
+      const userId = (request.metadata?.['userId'] as string) || 'anonymous';
+      const tier = request.metadata?.['subscriptionTier'] as 'community' | 'professional' | 'enterprise' | undefined;
+      const rateLimitResult = this.rateLimiter.checkLimit(userId, undefined, tier);
+
+      if (!rateLimitResult.allowed) {
+        throw new CAMError(
+          `Rate limit exceeded. Retry after ${Math.ceil((rateLimitResult.retryAfterMs || 0) / 1000)} seconds`,
+          'RATE_LIMIT_EXCEEDED',
+          {
+            details: {
+              remaining: rateLimitResult.remaining,
+              limit: rateLimitResult.limit,
+              resetAt: rateLimitResult.resetAt.toISOString(),
+              retryAfterMs: rateLimitResult.retryAfterMs
+            }
+          }
+        );
+      }
+
       // 1. Validate the request
       await this.validateRequest(request);
 
@@ -207,6 +243,27 @@ export class FastPathRouter {
    */
   setCacheEnabled(enabled: boolean): void {
     this.cacheManager.setEnabled(enabled);
+  }
+
+  /**
+   * Get rate limiting statistics
+   */
+  getRateLimitStats(): RateLimitStats {
+    return this.rateLimiter.getStats();
+  }
+
+  /**
+   * Reset rate limit for a specific user
+   */
+  resetUserRateLimit(userId: string): void {
+    this.rateLimiter.resetUserLimit(userId);
+  }
+
+  /**
+   * Update rate limit configuration
+   */
+  updateRateLimitConfig(config: Partial<RateLimitConfig>): void {
+    this.rateLimiter.updateConfig(config);
   }
 
   async getOptimalProvider(requirements: ProviderRequirements): Promise<ProviderInfo> {
@@ -421,6 +478,12 @@ export class FastPathRouter {
         overallStatus = 'degraded';
       }
 
+      // Get rate limiting stats
+      const rateLimitStats = this.rateLimiter.getStats();
+
+      // Get cache stats
+      const cacheStats = this.cacheManager.getStats();
+
       return {
         status: overallStatus,
         component: 'fastpath_router',
@@ -432,7 +495,20 @@ export class FastPathRouter {
           totalErrors,
           averageLatency: overallAvgLatency,
           errorRate: Math.round(overallErrorRate * 1000) / 1000,
-          providers: providerDetails
+          providers: providerDetails,
+          rateLimiting: {
+            enabled: this.rateLimiter.isEnabled(),
+            totalRequests: rateLimitStats.totalRequests,
+            blockedRequests: rateLimitStats.blockedRequests,
+            blockRate: rateLimitStats.blockRate,
+            activeUsers: rateLimitStats.activeUsers
+          },
+          caching: {
+            enabled: this.cacheManager.isEnabled(),
+            entries: cacheStats.entries,
+            hitRate: cacheStats.hitRate,
+            totalCostSaved: cacheStats.totalCostSaved
+          }
         }
       };
     } catch (error) {
@@ -740,8 +816,6 @@ export class FastPathRouter {
     this.loadProviderConfigs();
 
     const startTime = Date.now();
-    let success = true;
-    let errorMsg: string | undefined;
 
     try {
       const client = this.getOpenAIClient(provider.id);
@@ -778,8 +852,7 @@ export class FastPathRouter {
         }
       };
     } catch (err) {
-      success = false;
-      errorMsg = err instanceof Error ? err.message : String(err);
+      const errorMsg = err instanceof Error ? err.message : String(err);
       const latency = Date.now() - startTime;
       this.recordProviderMetrics(provider.id, latency, false, errorMsg);
 
