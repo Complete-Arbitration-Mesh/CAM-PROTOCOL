@@ -5,7 +5,7 @@
   <h3>Complete Arbitration Mesh (CAM) Protocol</h3>
 
   [![License: Contact Andrew "Dru" Edwards](https://img.shields.io/badge/license-Contact%20Andrew%20%22Dru%22%20Edwards-critical)](LICENSE)
-  [![Version](https://img.shields.io/badge/Version-2.0.0-brightgreen.svg)](docs/RELEASE_NOTES.md)
+  [![Version](https://img.shields.io/badge/Version-2.1.0-brightgreen.svg)](docs/RELEASE_NOTES.md)
   [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](CHANGELOG.md)
   [![Compliance](https://img.shields.io/badge/Compliance-GDPR%20|%20CCPA-green.svg)](docs/legal/COMPLIANCE_CHECKLIST.md)
   [![Build Status](https://img.shields.io/github/workflow/status/Complete-Arbitration-Mesh/CAM-PROTOCOL/Continuous%20Integration?branch=main)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
@@ -18,7 +18,7 @@
 </div>
 
 
-**Production Status:** CAM Protocol is **production ready** as of the [v2.0.0 release](CHANGELOG.md) on May 28, 2025.
+**Production Status:** CAM Protocol is **production ready** as of the [v2.0.0 release](CHANGELOG.md) on May 28, 2025. The [v2.1.0 release](CHANGELOG.md) adds official SDK integrations, response caching, streaming support, and rate limiting.
 
 **Security Notice:** All security hardening tasks have been completed. Refer to the [Security Checklist](docs/security/SECURITY_CHECKLIST.md) for details.
 
@@ -41,7 +41,11 @@ Organizations face evolving challenges in the AI space:
 ## 🚀 Key Features
 
 ### Core Orchestration (CAM Classic)
-- **FastPath Routing System** - Route requests to optimal AI providers 
+- **FastPath Routing System** - Route requests to optimal AI providers
+- **Official SDK Integrations** - OpenAI, Anthropic, Google, and Azure SDKs
+- **Streaming Responses** - Real-time streaming via async generators
+- **Response Caching** - In-memory LRU + Redis distributed caching
+- **Rate Limiting** - Sliding window per-user and per-provider limits
 - **Advanced Arbitration Engine** - Make decisions based on comprehensive criteria
 - **Secure Authentication** - Protect access to your CAM instance
 - **Comprehensive Monitoring** - Track detailed performance metrics
