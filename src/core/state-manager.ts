@@ -14,6 +14,18 @@ import {
   PersistedState
 } from './persistence.js';
 
+// Usage tracking for customers
+export interface CustomerUsage {
+  customerId: string;
+  requests: number;
+  tokens: number;
+  cost: number;
+  agents: number;
+  lastUpdated: string;
+  periodStart: string;
+  periodEnd: string;
+}
+
 /**
  * State Manager for Complete Arbitration Mesh
  * Manages both routing state (CAM Classic) and collaboration state (IACP)
@@ -23,6 +35,7 @@ export class StateManager {
   private collaborationStates: Map<string, CollaborationState> = new Map();
   private snapshots: StateSnapshot[] = [];
   private listeners: Set<(event: StateChangeEvent) => void> = new Set();
+  private customerUsage: Map<string, CustomerUsage> = new Map();
   private readonly maxSnapshots: number;
   private readonly logger: Logger;
   private readonly persistence: PersistenceAdapter;
@@ -286,6 +299,96 @@ export class StateManager {
         snapshots: this.snapshots.length * 1024 // Rough estimate
       }
     };
+  }
+
+  // =========================================================================
+  // Customer Usage Tracking
+  // =========================================================================
+
+  /**
+   * Get or initialize usage data for a customer
+   */
+  private getOrCreateCustomerUsage(customerId: string): CustomerUsage {
+    if (!this.customerUsage.has(customerId)) {
+      const now = new Date();
+      const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      this.customerUsage.set(customerId, {
+        customerId,
+        requests: 0,
+        tokens: 0,
+        cost: 0,
+        agents: 0,
+        lastUpdated: now.toISOString(),
+        periodStart: periodStart.toISOString(),
+        periodEnd: periodEnd.toISOString()
+      });
+    }
+    return this.customerUsage.get(customerId)!;
+  }
+
+  /**
+   * Record a request for a customer
+   */
+  recordCustomerRequest(customerId: string, tokens: number, cost: number): void {
+    const usage = this.getOrCreateCustomerUsage(customerId);
+    usage.requests++;
+    usage.tokens += tokens;
+    usage.cost += cost;
+    usage.lastUpdated = new Date().toISOString();
+
+    this.logger.debug('Recorded customer request', {
+      customerId,
+      requests: usage.requests,
+      tokens: usage.tokens,
+      cost: usage.cost
+    });
+  }
+
+  /**
+   * Record agent usage for a customer
+   */
+  recordAgentUsage(customerId: string, agentCount: number): void {
+    const usage = this.getOrCreateCustomerUsage(customerId);
+    usage.agents = Math.max(usage.agents, agentCount);
+    usage.lastUpdated = new Date().toISOString();
+  }
+
+  /**
+   * Get usage statistics for a customer
+   */
+  getCustomerUsage(customerId: string): CustomerUsage {
+    return this.getOrCreateCustomerUsage(customerId);
+  }
+
+  /**
+   * Reset usage for a customer (e.g., at billing period start)
+   */
+  resetCustomerUsage(customerId: string): void {
+    const now = new Date();
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    this.customerUsage.set(customerId, {
+      customerId,
+      requests: 0,
+      tokens: 0,
+      cost: 0,
+      agents: 0,
+      lastUpdated: now.toISOString(),
+      periodStart: periodStart.toISOString(),
+      periodEnd: periodEnd.toISOString()
+    });
+
+    this.logger.info('Reset customer usage', { customerId });
+  }
+
+  /**
+   * Get all customer usage data
+   */
+  getAllCustomerUsage(): CustomerUsage[] {
+    return Array.from(this.customerUsage.values());
   }
 
   /**

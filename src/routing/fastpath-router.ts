@@ -17,13 +17,127 @@ import type { ProviderConfig } from '../shared/config.js';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+import { CacheManager, CacheStats } from './cache-manager.js';
+
+// Provider health metrics for real-time monitoring
+interface ProviderHealthMetrics {
+  requestCount: number;
+  errorCount: number;
+  totalLatency: number;
+  latencies: number[];  // Last N latencies for percentile calculation
+  lastError?: string;
+  lastErrorTime?: Date;
+}
+
+export interface FastPathRouterOptions {
+  logger?: Logger;
+  cacheEnabled?: boolean;
+  cacheMaxEntries?: number;
+  cacheTtlMs?: number;
+}
 
 export class FastPathRouter {
   private logger: Logger;
   private providerConfigs: Record<string, ProviderConfig> = {};
-  constructor(logger?: Logger) {
-    this.logger = logger || new Logger('info');
-    this.logger.info('FastPath Router initialized');
+  private healthMetrics: Map<string, ProviderHealthMetrics> = new Map();
+  private openaiClients: Map<string, OpenAI> = new Map();
+  private anthropicClients: Map<string, Anthropic> = new Map();
+  private cacheManager: CacheManager;
+  private readonly MAX_LATENCY_SAMPLES = 100;  // Keep last 100 latencies for percentile calc
+  private readonly ERROR_RATE_THRESHOLD = 0.1;  // 10% error rate triggers degradation
+
+  constructor(options: FastPathRouterOptions | Logger = {}) {
+    // Support both old (Logger) and new (options) constructor signatures
+    if (options instanceof Logger) {
+      this.logger = options;
+      this.cacheManager = new CacheManager();
+    } else {
+      this.logger = options.logger || new Logger('info');
+      this.cacheManager = new CacheManager({
+        enabled: options.cacheEnabled ?? true,
+        maxEntries: options.cacheMaxEntries ?? 1000,
+        defaultTtlMs: options.cacheTtlMs ?? 5 * 60 * 1000
+      });
+    }
+    this.logger.info('FastPath Router initialized with SDK and caching support');
+  }
+
+  /**
+   * Get or create an OpenAI client for the given provider
+   */
+  private getOpenAIClient(providerId: string): OpenAI {
+    if (!this.openaiClients.has(providerId)) {
+      const cfg = this.providerConfigs[providerId];
+      if (!cfg) throw new CAMError(`Missing configuration for provider ${providerId}`, 'CONFIG_NOT_FOUND');
+
+      const client = new OpenAI({
+        apiKey: cfg.apiKey,
+        baseURL: cfg.endpoint || undefined
+      });
+      this.openaiClients.set(providerId, client);
+    }
+    return this.openaiClients.get(providerId)!;
+  }
+
+  /**
+   * Get or create an Anthropic client for the given provider
+   */
+  private getAnthropicClient(providerId: string): Anthropic {
+    if (!this.anthropicClients.has(providerId)) {
+      const cfg = this.providerConfigs[providerId];
+      if (!cfg) throw new CAMError(`Missing configuration for provider ${providerId}`, 'CONFIG_NOT_FOUND');
+
+      const client = new Anthropic({
+        apiKey: cfg.apiKey,
+        baseURL: cfg.endpoint || undefined
+      });
+      this.anthropicClients.set(providerId, client);
+    }
+    return this.anthropicClients.get(providerId)!;
+  }
+
+  /**
+   * Record metrics for a provider request
+   */
+  private recordProviderMetrics(providerId: string, latency: number, success: boolean, error?: string): void {
+    if (!this.healthMetrics.has(providerId)) {
+      this.healthMetrics.set(providerId, {
+        requestCount: 0,
+        errorCount: 0,
+        totalLatency: 0,
+        latencies: []
+      });
+    }
+
+    const metrics = this.healthMetrics.get(providerId)!;
+    metrics.requestCount++;
+    metrics.totalLatency += latency;
+
+    // Keep rolling window of latencies
+    metrics.latencies.push(latency);
+    if (metrics.latencies.length > this.MAX_LATENCY_SAMPLES) {
+      metrics.latencies.shift();
+    }
+
+    if (!success && error) {
+      metrics.errorCount++;
+      metrics.lastError = error;
+      metrics.lastErrorTime = new Date();
+    } else if (!success) {
+      metrics.errorCount++;
+    }
+  }
+
+  /**
+   * Calculate percentile from latency array
+   */
+  private calculatePercentile(latencies: number[], percentile: number): number {
+    if (latencies.length === 0) return 0;
+    const sorted = [...latencies].sort((a, b) => a - b);
+    const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+    return sorted[Math.max(0, index)] || 0;
   }
 
   async routeRequest(request: AICoreRequest): Promise<AICoreResponse> {
@@ -31,7 +145,9 @@ export class FastPathRouter {
 
     try {
       // 1. Validate the request
-      await this.validateRequest(request);      // 2. Apply policies
+      await this.validateRequest(request);
+
+      // 2. Apply policies
       const policyResult = await this.applyPolicies(request);
       if (!policyResult.allowed) {
         throw new CAMError(`Policy violation: ${policyResult.reason}`, 'POLICY_VIOLATION');
@@ -40,10 +156,29 @@ export class FastPathRouter {
       // 3. Select optimal provider
       const provider = await this.selectProvider(request.requirements || {});
 
-      // 4. Route to provider
+      // 4. Check cache first (skip cache check if request explicitly disables it)
+      if (!request.metadata?.['skipCache']) {
+        const cachedResponse = this.cacheManager.get(request, provider.id);
+        if (cachedResponse) {
+          this.logger.info('Returning cached response', {
+            provider: provider.id,
+            cacheKey: cachedResponse.metadata?.['cacheKey'],
+            originalCost: cachedResponse.metadata?.['originalCost']
+          });
+          return cachedResponse;
+        }
+      }
+
+      // 5. Route to provider (cache miss)
       const response = await this.executeRequest(request, provider);
 
-      // 5. Record metrics
+      // 6. Cache the response for future requests
+      if (!request.metadata?.['skipCache']) {
+        const ttlMs = request.metadata?.['cacheTtlMs'] as number | undefined;
+        this.cacheManager.set(request, response, ttlMs, provider.id);
+      }
+
+      // 7. Record metrics
       await this.recordMetrics(request, response, provider);
 
       return response;
@@ -51,6 +186,27 @@ export class FastPathRouter {
       this.logger.error('FastPath routing failed', { error, request });
       throw error;
     }
+  }
+
+  /**
+   * Get cache statistics
+   */
+  getCacheStats(): CacheStats {
+    return this.cacheManager.getStats();
+  }
+
+  /**
+   * Clear the response cache
+   */
+  clearCache(): void {
+    this.cacheManager.clear();
+  }
+
+  /**
+   * Enable or disable caching
+   */
+  setCacheEnabled(enabled: boolean): void {
+    this.cacheManager.setEnabled(enabled);
   }
 
   async getOptimalProvider(requirements: ProviderRequirements): Promise<ProviderInfo> {
@@ -207,18 +363,76 @@ export class FastPathRouter {
   }
 
   /**
-   * Get health status of the routing system
+   * Get health status of the routing system with real metrics
    */
   async getHealthStatus(): Promise<any> {
     try {
+      // Calculate real metrics from provider health data
+      let totalRequests = 0;
+      let totalErrors = 0;
+      let totalLatency = 0;
+      let providersAvailable = 0;
+      let providersDegraded = 0;
+
+      const providerDetails: Record<string, any> = {};
+
+      for (const [providerId, metrics] of this.healthMetrics) {
+        totalRequests += metrics.requestCount;
+        totalErrors += metrics.errorCount;
+        totalLatency += metrics.totalLatency;
+
+        const errorRate = metrics.requestCount > 0
+          ? metrics.errorCount / metrics.requestCount
+          : 0;
+
+        const avgLatency = metrics.requestCount > 0
+          ? Math.round(metrics.totalLatency / metrics.requestCount)
+          : 0;
+
+        const status = errorRate >= this.ERROR_RATE_THRESHOLD ? 'degraded' : 'available';
+        if (status === 'degraded') {
+          providersDegraded++;
+        } else {
+          providersAvailable++;
+        }
+
+        providerDetails[providerId] = {
+          status,
+          requestCount: metrics.requestCount,
+          errorCount: metrics.errorCount,
+          errorRate: Math.round(errorRate * 1000) / 1000,  // 3 decimal places
+          averageLatency: avgLatency,
+          latencyP50: this.calculatePercentile(metrics.latencies, 50),
+          latencyP95: this.calculatePercentile(metrics.latencies, 95),
+          latencyP99: this.calculatePercentile(metrics.latencies, 99),
+          lastError: metrics.lastError,
+          lastErrorTime: metrics.lastErrorTime?.toISOString()
+        };
+      }
+
+      const overallErrorRate = totalRequests > 0 ? totalErrors / totalRequests : 0;
+      const overallAvgLatency = totalRequests > 0 ? Math.round(totalLatency / totalRequests) : 0;
+
+      // Determine overall status
+      let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+      if (providersDegraded > 0 && providersAvailable === 0) {
+        overallStatus = 'unhealthy';
+      } else if (providersDegraded > 0 || overallErrorRate > 0.05) {
+        overallStatus = 'degraded';
+      }
+
       return {
-        status: 'healthy',
+        status: overallStatus,
         component: 'fastpath_router',
         timestamp: new Date().toISOString(),
         details: {
-          providersAvailable: 3, // Mock data
-          averageLatency: 150,
-          errorRate: 0.01
+          providersAvailable,
+          providersDegraded,
+          totalRequests,
+          totalErrors,
+          averageLatency: overallAvgLatency,
+          errorRate: Math.round(overallErrorRate * 1000) / 1000,
+          providers: providerDetails
         }
       };
     } catch (error) {
@@ -518,111 +732,128 @@ export class FastPathRouter {
   }
   
   /**
-   * Execute a request with OpenAI
-   * In a real implementation, this would use the OpenAI SDK
+   * Execute a request with OpenAI using the official SDK
+   * Provides automatic retries, proper error handling, and streaming support
    */
   private async executeOpenAIRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
-    const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
+    // Ensure provider configs are loaded
+    this.loadProviderConfigs();
 
-    const endpoint = cfg.endpoint || 'https://api.openai.com/v1/chat/completions';
+    const startTime = Date.now();
+    let success = true;
+    let errorMsg: string | undefined;
 
     try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${cfg.apiKey}`
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: request.prompt }],
-          temperature: request.temperature ?? 0.7,
-          max_tokens: request.maxTokens
-        })
-      });      const data = await res.json() as any;
-      if (!res.ok) {
-        throw new CAMError(data.error?.message || 'OpenAI request failed', 'PROVIDER_ERROR');
-      }
+      const client = this.getOpenAIClient(provider.id);
 
-      return {
-        content: data.choices?.[0]?.message?.content || '',
-        provider: provider.id,
+      const completion = await client.chat.completions.create({
         model,
-        usage: {
-          promptTokens: data.usage?.prompt_tokens || 0,
-          completionTokens: data.usage?.completion_tokens || 0,
-          totalTokens: data.usage?.total_tokens || 0
-        },
-        latency: 0,
-        cost: 0,
-        metadata: {
-          provider: provider.name,
-          timestamp: new Date().toISOString()
-        }
-      };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new CAMError(message, 'PROVIDER_ERROR');
-    }
-  }
-  
-  /**
-   * Execute a request with Anthropic
-   * In a real implementation, this would use the Anthropic SDK
-   */
-  private async executeAnthropicRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
-    const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
+        messages: [{ role: 'user', content: request.prompt }],
+        temperature: request.temperature ?? 0.7,
+        max_tokens: request.maxTokens ?? null
+      });
 
-    const endpoint = cfg.endpoint || 'https://api.anthropic.com/v1/messages';
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, true);
 
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': cfg.apiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: request.prompt }],
-          temperature: request.temperature ?? 0.7,
-          max_tokens: request.maxTokens
-        })
-      });      const data = await res.json() as any;
-      if (!res.ok) {
-        throw new CAMError(data.error?.message || 'Anthropic request failed', 'PROVIDER_ERROR');
-      }
-
-      const content = Array.isArray(data.content) ? data.content.map((p: any) => p.text).join(' ') : data.content?.[0]?.text || '';
+      const content = completion.choices[0]?.message?.content || '';
+      const usage = completion.usage;
 
       return {
         content,
         provider: provider.id,
-        model,
+        model: completion.model,
         usage: {
-          promptTokens: data.usage?.input_tokens || 0,
-          completionTokens: data.usage?.output_tokens || 0,
-          totalTokens: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0)
+          promptTokens: usage?.prompt_tokens || 0,
+          completionTokens: usage?.completion_tokens || 0,
+          totalTokens: usage?.total_tokens || 0
         },
-        latency: 0,
-        cost: 0,
+        latency: 0,  // Will be set by caller
+        cost: 0,     // Will be calculated by caller
         metadata: {
           provider: provider.name,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          finishReason: completion.choices[0]?.finish_reason,
+          sdkVersion: 'openai-sdk'
         }
       };
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      throw new CAMError(message, 'PROVIDER_ERROR');
+      success = false;
+      errorMsg = err instanceof Error ? err.message : String(err);
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, false, errorMsg);
+
+      // Handle specific OpenAI error types
+      if (err instanceof OpenAI.APIError) {
+        throw new CAMError(`OpenAI API error: ${err.message}`, 'PROVIDER_ERROR');
+      }
+      throw new CAMError(errorMsg, 'PROVIDER_ERROR');
     }
   }
   
   /**
-   * Execute a request with Google
-   * In a real implementation, this would use the Google Gemini API
+   * Execute a request with Anthropic using the official SDK
+   * Provides automatic retries, proper error handling, and streaming support
+   */
+  private async executeAnthropicRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
+    // Ensure provider configs are loaded
+    this.loadProviderConfigs();
+
+    const startTime = Date.now();
+
+    try {
+      const client = this.getAnthropicClient(provider.id);
+
+      const message = await client.messages.create({
+        model,
+        messages: [{ role: 'user', content: request.prompt }],
+        temperature: request.temperature ?? 0.7,
+        max_tokens: request.maxTokens || 1024
+      });
+
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, true);
+
+      // Extract text content from the response
+      const content = message.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map(block => block.text)
+        .join('');
+
+      return {
+        content,
+        provider: provider.id,
+        model: message.model,
+        usage: {
+          promptTokens: message.usage.input_tokens,
+          completionTokens: message.usage.output_tokens,
+          totalTokens: message.usage.input_tokens + message.usage.output_tokens
+        },
+        latency: 0,  // Will be set by caller
+        cost: 0,     // Will be calculated by caller
+        metadata: {
+          provider: provider.name,
+          timestamp: new Date().toISOString(),
+          stopReason: message.stop_reason,
+          sdkVersion: 'anthropic-sdk'
+        }
+      };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, false, errorMsg);
+
+      // Handle specific Anthropic error types
+      if (err instanceof Anthropic.APIError) {
+        throw new CAMError(`Anthropic API error: ${err.message}`, 'PROVIDER_ERROR');
+      }
+      throw new CAMError(errorMsg, 'PROVIDER_ERROR');
+    }
+  }
+  
+  /**
+   * Execute a request with Google Gemini API
+   * Uses raw fetch as Google SDK has different patterns
    */
   private async executeGoogleRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
     const cfg = this.providerConfigs[provider.id];
@@ -630,6 +861,7 @@ export class FastPathRouter {
 
     const urlBase = cfg.endpoint || 'https://generativelanguage.googleapis.com/v1beta';
     const url = `${urlBase}/models/${model}:generateContent?key=${cfg.apiKey}`;
+    const startTime = Date.now();
 
     try {
       const res = await fetch(url, {
@@ -637,13 +869,22 @@ export class FastPathRouter {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: request.prompt }] }],
-          temperature: request.temperature ?? 0.7,
-          generationConfig: { maxOutputTokens: request.maxTokens }
+          generationConfig: {
+            temperature: request.temperature ?? 0.7,
+            maxOutputTokens: request.maxTokens
+          }
         })
-      });      const data = await res.json() as any;
+      });
+
+      const data = await res.json() as any;
+      const latency = Date.now() - startTime;
+
       if (!res.ok) {
+        this.recordProviderMetrics(provider.id, latency, false, data.error?.message);
         throw new CAMError(data.error?.message || 'Google request failed', 'PROVIDER_ERROR');
       }
+
+      this.recordProviderMetrics(provider.id, latency, true);
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       const usage = data.usageMetadata || {};
@@ -659,23 +900,30 @@ export class FastPathRouter {
         },
         latency: 0,
         cost: 0,
-        metadata: { provider: provider.name, timestamp: new Date().toISOString() }
+        metadata: {
+          provider: provider.name,
+          timestamp: new Date().toISOString(),
+          finishReason: data.candidates?.[0]?.finishReason
+        }
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, false, message);
       throw new CAMError(message, 'PROVIDER_ERROR');
     }
   }
   
   /**
    * Execute a request with Azure OpenAI
-   * In a real implementation, this would use the Azure OpenAI SDK
+   * Uses the Azure OpenAI REST API with metrics tracking
    */
   private async executeAzureRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
     const cfg = this.providerConfigs[provider.id];
     if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
 
     const url = `${cfg.endpoint}/openai/deployments/${model}/chat/completions?api-version=2023-05-15`;
+    const startTime = Date.now();
 
     try {
       const res = await fetch(url, {
@@ -689,10 +937,17 @@ export class FastPathRouter {
           temperature: request.temperature ?? 0.7,
           max_tokens: request.maxTokens
         })
-      });      const data = await res.json() as any;
+      });
+
+      const data = await res.json() as any;
+      const latency = Date.now() - startTime;
+
       if (!res.ok) {
+        this.recordProviderMetrics(provider.id, latency, false, data.error?.message);
         throw new CAMError(data.error?.message || 'Azure request failed', 'PROVIDER_ERROR');
       }
+
+      this.recordProviderMetrics(provider.id, latency, true);
 
       return {
         content: data.choices?.[0]?.message?.content || '',
@@ -708,11 +963,14 @@ export class FastPathRouter {
         metadata: {
           provider: provider.name,
           timestamp: new Date().toISOString(),
-          region: request.requirements?.region || 'eastus'
+          region: request.requirements?.region || 'eastus',
+          finishReason: data.choices?.[0]?.finish_reason
         }
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, false, message);
       throw new CAMError(message, 'PROVIDER_ERROR');
     }
   }
