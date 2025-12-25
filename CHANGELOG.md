@@ -1,7 +1,111 @@
 # Complete Arbitration Mesh - CI/CD Changelog
 
+## Version 2.1.0 - Production Hardening Release
+**Release Date**: 2025-12-25
+**Build**: Production Ready
+**Status**: Production Release (v2.1.0)
+
+This release focuses on production hardening with official SDK integrations, response caching, rate limiting, and streaming support.
+
+---
+
+### ✨ NEW FEATURES
+
+#### 1. **Official SDK Integration**
+All provider calls now use official SDKs instead of raw fetch for improved reliability:
+- **OpenAI SDK** (`openai` package) - Full API support with retry logic
+- **Anthropic SDK** (`@anthropic-ai/sdk`) - Native Claude integration
+- **Google Generative AI SDK** (`@google/generative-ai`) - Gemini model support
+- **Azure OpenAI SDK** (`openai` AzureOpenAI client) - Enterprise Azure integration
+
+#### 2. **Streaming Response Support**
+New async generator-based streaming for real-time responses:
+```typescript
+// Stream responses from any provider
+const stream = cam.routeStreamingRequest({
+  prompt: "Generate a long response",
+  stream: true
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.content);
+}
+```
+
+**Implementation Files:**
+- `src/routing/fastpath-router.ts` - `routeStreamingRequest()` method
+- `src/shared/types.ts` - `StreamChunk` interface
+
+#### 3. **Response Caching System**
+Two-tier caching for cost optimization:
+
+**In-Memory Cache** (`src/routing/cache-manager.ts`):
+- LRU eviction with configurable max entries
+- TTL-based expiration
+- Cache hit/miss statistics
+- Cost savings tracking
+
+**Redis Cache** (`src/routing/redis-cache.ts`):
+- Distributed caching for horizontal scaling
+- Automatic failover to in-memory
+- Same interface as in-memory cache
+
+#### 4. **Rate Limiting**
+Sliding window rate limiting (`src/routing/rate-limiter.ts`):
+- Per-user request limits
+- Per-provider limits
+- Tier-based limits (community, professional, enterprise)
+- Real-time statistics and monitoring
+
+---
+
+### 🔒 SECURITY
+
+- **Fixed** CVE in esbuild CORS handling (GHSA-67mh-4wv8-2f99) via vitest upgrade
+- Upgraded vitest to v4.0.16 (from v2.1.9)
+- Added ioredis for secure Redis connections
+
+---
+
+### 🧪 TESTING
+
+Added comprehensive test coverage:
+- **Rate Limiter Tests** (22 tests) - `tests/routing/rate-limiter.test.ts`
+- **Cache Manager Tests** (28 tests) - `tests/routing/cache-manager.test.ts`
+- **Total**: 124 tests passing
+- **Lint**: 0 errors
+
+---
+
+### 📦 DEPENDENCIES
+
+**Added:**
+- `ioredis` ^5.8.2 - Redis client for distributed caching
+- `@google/generative-ai` ^0.24.1 - Google Gemini SDK
+
+**Updated:**
+- `vitest` 2.1.9 → 4.0.16 - Test framework with security fix
+- `@vitest/coverage-v8` updated to match
+
+---
+
+### 📁 NEW FILES
+
+```
+src/routing/
+├── cache-manager.ts      # In-memory LRU cache
+├── redis-cache.ts        # Redis cache adapter
+└── rate-limiter.ts       # Sliding window rate limiter
+
+tests/routing/
+├── cache-manager.test.ts # Cache manager tests
+└── rate-limiter.test.ts  # Rate limiter tests
+```
+
+---
+
 ## Version 2.0.0 - Complete Platform Evolution
-**Release Date**: 2025-05-28  
+**Release Date**: 2025-05-28
 **Build**: Production Ready
 **Status**: Production Release (v2.0.0)
 This version is considered stable and recommended for production deployments.
