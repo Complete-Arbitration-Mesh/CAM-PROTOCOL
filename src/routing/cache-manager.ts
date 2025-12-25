@@ -5,9 +5,9 @@
  * identical requests. Cache hits are returned instantly at $0 cost.
  */
 
-import { createHash } from 'crypto';
-import { Logger } from '../shared/logger.js';
-import type { AICoreRequest, AICoreResponse } from '../shared/types.js';
+import { createHash } from "crypto";
+import { Logger } from "../shared/logger.js";
+import type { AICoreRequest, AICoreResponse } from "../shared/types.js";
 
 export interface CacheEntry {
   response: AICoreResponse;
@@ -27,9 +27,9 @@ export interface CacheStats {
 }
 
 export interface CacheManagerOptions {
-  maxEntries?: number;      // Max number of cached responses (default: 1000)
-  defaultTtlMs?: number;    // Default TTL in milliseconds (default: 5 minutes)
-  enabled?: boolean;        // Enable/disable caching (default: true)
+  maxEntries?: number; // Max number of cached responses (default: 1000)
+  defaultTtlMs?: number; // Default TTL in milliseconds (default: 5 minutes)
+  enabled?: boolean; // Enable/disable caching (default: true)
 }
 
 export class CacheManager {
@@ -46,14 +46,14 @@ export class CacheManager {
 
   constructor(options: CacheManagerOptions = {}) {
     this.maxEntries = options.maxEntries ?? 1000;
-    this.defaultTtlMs = options.defaultTtlMs ?? 5 * 60 * 1000;  // 5 minutes default
+    this.defaultTtlMs = options.defaultTtlMs ?? 5 * 60 * 1000; // 5 minutes default
     this.enabled = options.enabled ?? true;
-    this.logger = new Logger('info');
+    this.logger = new Logger("info");
 
-    this.logger.info('Cache Manager initialized', {
+    this.logger.info("Cache Manager initialized", {
       maxEntries: this.maxEntries,
       defaultTtlMs: this.defaultTtlMs,
-      enabled: this.enabled
+      enabled: this.enabled,
     });
   }
 
@@ -64,15 +64,15 @@ export class CacheManager {
   generateCacheKey(request: AICoreRequest, providerId?: string): string {
     const keyData = {
       prompt: request.prompt,
-      model: request.model || 'default',
+      model: request.model || "default",
       temperature: Math.round((request.temperature ?? 0.7) * 100) / 100,
-      provider: providerId || 'any'
+      provider: providerId || "any",
     };
 
-    const hash = createHash('sha256')
+    const hash = createHash("sha256")
       .update(JSON.stringify(keyData))
-      .digest('hex')
-      .substring(0, 16);  // Use first 16 chars for shorter keys
+      .digest("hex")
+      .substring(0, 16); // Use first 16 chars for shorter keys
 
     return `cam:${hash}`;
   }
@@ -103,10 +103,10 @@ export class CacheManager {
     entry.hitCount++;
     this.totalCostSaved += entry.response.cost;
 
-    this.logger.debug('Cache hit', {
+    this.logger.debug("Cache hit", {
       key,
       hitCount: entry.hitCount,
-      costSaved: entry.response.cost
+      costSaved: entry.response.cost,
     });
 
     // Return a copy with updated metadata
@@ -117,21 +117,26 @@ export class CacheManager {
         cached: true,
         cacheKey: key,
         originalCost: entry.response.cost,
-        cacheHitCount: entry.hitCount
+        cacheHitCount: entry.hitCount,
       },
-      cost: 0,  // Cached responses cost nothing
-      latency: 0  // Instant response
+      cost: 0, // Cached responses cost nothing
+      latency: 0, // Instant response
     };
   }
 
   /**
    * Store a response in the cache
    */
-  set(request: AICoreRequest, response: AICoreResponse, ttlMs?: number, providerId?: string): void {
+  set(
+    request: AICoreRequest,
+    response: AICoreResponse,
+    ttlMs?: number,
+    providerId?: string,
+  ): void {
     if (!this.enabled) return;
 
     // Don't cache error responses or fallbacks
-    if (response.metadata?.['error'] || response.metadata?.['fallback']) {
+    if (response.metadata?.["error"] || response.metadata?.["fallback"]) {
       return;
     }
 
@@ -148,15 +153,15 @@ export class CacheManager {
       response,
       createdAt: now,
       expiresAt,
-      hitCount: 0
+      hitCount: 0,
     };
 
     this.cache.set(key, entry);
 
-    this.logger.debug('Cached response', {
+    this.logger.debug("Cached response", {
       key,
       ttlMs: ttlMs ?? this.defaultTtlMs,
-      cost: response.cost
+      cost: response.cost,
     });
   }
 
@@ -176,7 +181,7 @@ export class CacheManager {
 
     if (oldestKey) {
       this.cache.delete(oldestKey);
-      this.logger.debug('Evicted oldest cache entry', { key: oldestKey });
+      this.logger.debug("Evicted oldest cache entry", { key: oldestKey });
     }
   }
 
@@ -195,7 +200,7 @@ export class CacheManager {
     }
 
     if (cleared > 0) {
-      this.logger.info('Cleared expired cache entries', { count: cleared });
+      this.logger.info("Cleared expired cache entries", { count: cleared });
     }
 
     return cleared;
@@ -207,7 +212,7 @@ export class CacheManager {
   clear(): void {
     const count = this.cache.size;
     this.cache.clear();
-    this.logger.info('Cache cleared', { entriesRemoved: count });
+    this.logger.info("Cache cleared", { entriesRemoved: count });
   }
 
   /**
@@ -237,7 +242,7 @@ export class CacheManager {
       entries: this.cache.size,
       totalCostSaved: Math.round(this.totalCostSaved * 10000) / 10000,
       oldestEntry,
-      newestEntry
+      newestEntry,
     };
   }
 
@@ -246,7 +251,7 @@ export class CacheManager {
    */
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    this.logger.info(`Cache ${enabled ? 'enabled' : 'disabled'}`);
+    this.logger.info(`Cache ${enabled ? "enabled" : "disabled"}`);
   }
 
   /**
@@ -263,7 +268,7 @@ export class CacheManager {
     const key = this.generateCacheKey(request, providerId);
     const deleted = this.cache.delete(key);
     if (deleted) {
-      this.logger.debug('Cache entry invalidated', { key });
+      this.logger.debug("Cache entry invalidated", { key });
     }
     return deleted;
   }

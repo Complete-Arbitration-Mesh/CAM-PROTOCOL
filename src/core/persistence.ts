@@ -1,6 +1,10 @@
-import fs from 'fs';
-import path from 'path';
-import { RouteState, CollaborationState, StateSnapshot } from '../shared/types.js';
+import fs from "fs";
+import path from "path";
+import {
+  RouteState,
+  CollaborationState,
+  StateSnapshot,
+} from "../shared/types.js";
 
 export interface PersistedState {
   routeStates: Array<[string, RouteState]>;
@@ -14,7 +18,11 @@ export interface PersistenceAdapter {
 }
 
 export class InMemoryPersistence implements PersistenceAdapter {
-  private state: PersistedState = { routeStates: [], collaborationStates: [], snapshots: [] };
+  private state: PersistedState = {
+    routeStates: [],
+    collaborationStates: [],
+    snapshots: [],
+  };
 
   load(): PersistedState {
     return JSON.parse(JSON.stringify(this.state));
@@ -33,7 +41,7 @@ export class FilePersistence implements PersistenceAdapter {
       if (!fs.existsSync(this.filePath)) {
         return { routeStates: [], collaborationStates: [], snapshots: [] };
       }
-      const data = fs.readFileSync(this.filePath, 'utf-8');
+      const data = fs.readFileSync(this.filePath, "utf-8");
       return JSON.parse(data);
     } catch {
       return { routeStates: [], collaborationStates: [], snapshots: [] };
@@ -45,6 +53,6 @@ export class FilePersistence implements PersistenceAdapter {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(this.filePath, JSON.stringify(state, null, 2), 'utf-8');
+    fs.writeFileSync(this.filePath, JSON.stringify(state, null, 2), "utf-8");
   }
 }

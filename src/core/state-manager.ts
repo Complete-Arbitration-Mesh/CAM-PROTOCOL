@@ -1,18 +1,18 @@
-import { Logger } from '../shared/logger.js';
-import { CAMError } from '../shared/errors.js';
+import { Logger } from "../shared/logger.js";
+import { CAMError } from "../shared/errors.js";
 import {
   RouteState,
   CollaborationState,
   StateSnapshot,
   StateChangeEvent,
-  StateManagerConfig
-} from '../shared/types.js';
+  StateManagerConfig,
+} from "../shared/types.js";
 import {
   PersistenceAdapter,
   InMemoryPersistence,
   FilePersistence,
-  PersistedState
-} from './persistence.js';
+  PersistedState,
+} from "./persistence.js";
 
 // Usage tracking for customers
 export interface CustomerUsage {
@@ -42,9 +42,9 @@ export class StateManager {
 
   constructor(config: StateManagerConfig = {}) {
     this.maxSnapshots = config.maxSnapshots || 100;
-    this.logger = new Logger('info'); // Initialize with a valid LogLevel
-    if (config.backend === 'file') {
-      const path = config.storagePath || './state-data.json';
+    this.logger = new Logger("info"); // Initialize with a valid LogLevel
+    if (config.backend === "file") {
+      const path = config.storagePath || "./state-data.json";
       this.persistence = new FilePersistence(path);
     } else {
       this.persistence = new InMemoryPersistence();
@@ -55,9 +55,9 @@ export class StateManager {
     this.collaborationStates = new Map(persisted.collaborationStates);
     this.snapshots = persisted.snapshots || [];
 
-    this.logger.info('State Manager initialized', {
+    this.logger.info("State Manager initialized", {
       maxSnapshots: this.maxSnapshots,
-      backend: config.backend || 'memory'
+      backend: config.backend || "memory",
     });
   }
 
@@ -69,25 +69,28 @@ export class StateManager {
       const previousState = this.routeStates.get(routeId);
       this.routeStates.set(routeId, {
         ...state,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
 
       // Only emit state change if there's a previous state or we're setting a new state
       this.emitStateChange({
-        type: 'route_state_changed',
+        type: "route_state_changed",
         routeId,
         previousState: previousState || state, // Ensure previousState is never undefined
         newState: state,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       this.createSnapshot();
       this.persist();
 
-      this.logger.debug('Route state updated', { routeId, state });
+      this.logger.debug("Route state updated", { routeId, state });
     } catch (error) {
-      this.logger.error('Failed to set route state', { routeId, error });
-      throw new CAMError(`Failed to update route state: ${error}`, 'STATE_UPDATE_FAILED');
+      this.logger.error("Failed to set route state", { routeId, error });
+      throw new CAMError(
+        `Failed to update route state: ${error}`,
+        "STATE_UPDATE_FAILED",
+      );
     }
   }
 
@@ -106,24 +109,30 @@ export class StateManager {
       const previousState = this.collaborationStates.get(sessionId);
       this.collaborationStates.set(sessionId, {
         ...state,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
 
       this.emitStateChange({
-        type: 'collaboration_state_changed',
+        type: "collaboration_state_changed",
         sessionId,
         previousState: previousState || state, // Ensure previousState is never undefined
         newState: state,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       });
 
       this.createSnapshot();
       this.persist();
 
-      this.logger.debug('Collaboration state updated', { sessionId, state });
+      this.logger.debug("Collaboration state updated", { sessionId, state });
     } catch (error) {
-      this.logger.error('Failed to set collaboration state', { sessionId, error });
-      throw new CAMError(`Failed to update collaboration state: ${error}`, 'STATE_UPDATE_FAILED');
+      this.logger.error("Failed to set collaboration state", {
+        sessionId,
+        error,
+      });
+      throw new CAMError(
+        `Failed to update collaboration state: ${error}`,
+        "STATE_UPDATE_FAILED",
+      );
     }
   }
 
@@ -160,11 +169,11 @@ export class StateManager {
       if (state.expiresAt && new Date(state.expiresAt).getTime() < now) {
         this.routeStates.delete(routeId);
         cleanedCount++;
-        
+
         this.emitStateChange({
-          type: 'route_state_expired',
+          type: "route_state_expired",
           routeId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
@@ -174,17 +183,17 @@ export class StateManager {
       if (state.expiresAt && new Date(state.expiresAt).getTime() < now) {
         this.collaborationStates.delete(sessionId);
         cleanedCount++;
-        
+
         this.emitStateChange({
-          type: 'collaboration_state_expired',
+          type: "collaboration_state_expired",
           sessionId,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         });
       }
     }
 
     if (cleanedCount > 0) {
-      this.logger.info('Cleaned up expired states', { cleanedCount });
+      this.logger.info("Cleaned up expired states", { cleanedCount });
       this.createSnapshot();
       this.persist();
     }
@@ -197,7 +206,7 @@ export class StateManager {
     const snapshot: StateSnapshot = {
       timestamp: new Date().toISOString(),
       routeStates: new Map(this.routeStates),
-      collaborationStates: new Map(this.collaborationStates)
+      collaborationStates: new Map(this.collaborationStates),
     };
 
     this.snapshots.push(snapshot);
@@ -217,8 +226,8 @@ export class StateManager {
     if (!timestamp) {
       return this.snapshots[this.snapshots.length - 1];
     }
-    
-    return this.snapshots.find(s => s.timestamp === timestamp);
+
+    return this.snapshots.find((s) => s.timestamp === timestamp);
   }
 
   /**
@@ -235,7 +244,7 @@ export class StateManager {
     try {
       const snapshot = this.getSnapshot(timestamp);
       if (!snapshot) {
-        this.logger.warn('Snapshot not found', { timestamp });
+        this.logger.warn("Snapshot not found", { timestamp });
         return false;
       }
 
@@ -243,17 +252,23 @@ export class StateManager {
       this.collaborationStates = new Map(snapshot.collaborationStates);
 
       this.emitStateChange({
-        type: 'state_restored',
+        type: "state_restored",
         timestamp: new Date().toISOString(),
-        snapshotTimestamp: timestamp
+        snapshotTimestamp: timestamp,
       });
 
       this.persist();
-      this.logger.info('State restored from snapshot', { timestamp });
+      this.logger.info("State restored from snapshot", { timestamp });
       return true;
     } catch (error) {
-      this.logger.error('Failed to restore from snapshot', { timestamp, error });
-      throw new CAMError(`Failed to restore state: ${error}`, 'STATE_RESTORE_FAILED');
+      this.logger.error("Failed to restore from snapshot", {
+        timestamp,
+        error,
+      });
+      throw new CAMError(
+        `Failed to restore state: ${error}`,
+        "STATE_RESTORE_FAILED",
+      );
     }
   }
 
@@ -279,7 +294,7 @@ export class StateManager {
       try {
         listener(event);
       } catch (error) {
-        this.logger.error('State change listener failed', { error });
+        this.logger.error("State change listener failed", { error });
       }
     }
   }
@@ -296,8 +311,8 @@ export class StateManager {
       memoryUsage: {
         routeStates: this.estimateMapSize(this.routeStates),
         collaborationStates: this.estimateMapSize(this.collaborationStates),
-        snapshots: this.snapshots.length * 1024 // Rough estimate
-      }
+        snapshots: this.snapshots.length * 1024, // Rough estimate
+      },
     };
   }
 
@@ -322,7 +337,7 @@ export class StateManager {
         agents: 0,
         lastUpdated: now.toISOString(),
         periodStart: periodStart.toISOString(),
-        periodEnd: periodEnd.toISOString()
+        periodEnd: periodEnd.toISOString(),
       });
     }
     return this.customerUsage.get(customerId)!;
@@ -331,18 +346,22 @@ export class StateManager {
   /**
    * Record a request for a customer
    */
-  recordCustomerRequest(customerId: string, tokens: number, cost: number): void {
+  recordCustomerRequest(
+    customerId: string,
+    tokens: number,
+    cost: number,
+  ): void {
     const usage = this.getOrCreateCustomerUsage(customerId);
     usage.requests++;
     usage.tokens += tokens;
     usage.cost += cost;
     usage.lastUpdated = new Date().toISOString();
 
-    this.logger.debug('Recorded customer request', {
+    this.logger.debug("Recorded customer request", {
       customerId,
       requests: usage.requests,
       tokens: usage.tokens,
-      cost: usage.cost
+      cost: usage.cost,
     });
   }
 
@@ -378,10 +397,10 @@ export class StateManager {
       agents: 0,
       lastUpdated: now.toISOString(),
       periodStart: periodStart.toISOString(),
-      periodEnd: periodEnd.toISOString()
+      periodEnd: periodEnd.toISOString(),
     });
 
-    this.logger.info('Reset customer usage', { customerId });
+    this.logger.info("Reset customer usage", { customerId });
   }
 
   /**
@@ -408,7 +427,7 @@ export class StateManager {
     const data: PersistedState = {
       routeStates: Array.from(this.routeStates.entries()),
       collaborationStates: Array.from(this.collaborationStates.entries()),
-      snapshots: this.snapshots
+      snapshots: this.snapshots,
     };
 
     this.persistence.save(data);
@@ -428,7 +447,7 @@ export class StateManager {
     this.snapshots.length = 0;
     this.listeners.clear();
 
-    this.logger.info('State Manager shutdown complete');
+    this.logger.info("State Manager shutdown complete");
   }
 
   /**
@@ -436,35 +455,38 @@ export class StateManager {
    */
   async updateConfiguration(config: any): Promise<any> {
     try {
-      this.logger.info('Configuration update requested', { config });
-      
+      this.logger.info("Configuration update requested", { config });
+
       // Mock configuration update - in production this would update actual config
       const updatedFields: string[] = [];
-      
+
       if (config.logLevel) {
-        updatedFields.push('logLevel');
+        updatedFields.push("logLevel");
       }
-      
+
       if (config.policies) {
-        updatedFields.push('policies');
+        updatedFields.push("policies");
       }
-      
+
       if (config.collaboration) {
-        updatedFields.push('collaboration');
+        updatedFields.push("collaboration");
       }
 
       const result = {
         success: true,
-        message: 'Configuration updated successfully',
+        message: "Configuration updated successfully",
         updatedFields,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
-      this.logger.info('Configuration updated', result);
+
+      this.logger.info("Configuration updated", result);
       return result;
     } catch (error) {
-      this.logger.error('Configuration update failed', { error });
-      throw new CAMError(`Failed to update configuration: ${error}`, 'CONFIG_UPDATE_FAILED');
+      this.logger.error("Configuration update failed", { error });
+      throw new CAMError(
+        `Failed to update configuration: ${error}`,
+        "CONFIG_UPDATE_FAILED",
+      );
     }
   }
 
@@ -474,37 +496,41 @@ export class StateManager {
   async getMetrics(query: any): Promise<any> {
     try {
       const metrics = this.getHealthMetrics();
-      
+
       return {
         timeRange: {
-          start: query.startTime || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          end: query.endTime || new Date().toISOString()
+          start:
+            query.startTime ||
+            new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          end: query.endTime || new Date().toISOString(),
         },
-        granularity: query.granularity || 'hour',
+        granularity: query.granularity || "hour",
         data: [
           {
             timestamp: new Date().toISOString(),
-            metric: 'route_states_count',
+            metric: "route_states_count",
             value: metrics.routeStatesCount,
-            labels: { component: 'state_manager' }
+            labels: { component: "state_manager" },
           },
           {
             timestamp: new Date().toISOString(),
-            metric: 'collaboration_states_count',
+            metric: "collaboration_states_count",
             value: metrics.collaborationStatesCount,
-            labels: { component: 'state_manager' }
+            labels: { component: "state_manager" },
           },
           {
             timestamp: new Date().toISOString(),
-            metric: 'memory_usage_bytes',
-            value: metrics.memoryUsage.routeStates + metrics.memoryUsage.collaborationStates,
-            labels: { component: 'state_manager' }
-          }
-        ]
+            metric: "memory_usage_bytes",
+            value:
+              metrics.memoryUsage.routeStates +
+              metrics.memoryUsage.collaborationStates,
+            labels: { component: "state_manager" },
+          },
+        ],
       };
     } catch (error) {
-      this.logger.error('Failed to get metrics', { error });
-      throw new CAMError(`Failed to get metrics: ${error}`, 'METRICS_FAILED');
+      this.logger.error("Failed to get metrics", { error });
+      throw new CAMError(`Failed to get metrics: ${error}`, "METRICS_FAILED");
     }
   }
 
@@ -514,31 +540,39 @@ export class StateManager {
   async getHealthStatus(): Promise<any> {
     try {
       const metrics = this.getHealthMetrics();
-      
+
       // Determine health based on metrics
-      let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-      
-      if (metrics.routeStatesCount > 10000 || metrics.collaborationStatesCount > 1000) {
-        status = 'degraded';
+      let status: "healthy" | "degraded" | "unhealthy" = "healthy";
+
+      if (
+        metrics.routeStatesCount > 10000 ||
+        metrics.collaborationStatesCount > 1000
+      ) {
+        status = "degraded";
       }
-      
-      if (metrics.memoryUsage.routeStates + metrics.memoryUsage.collaborationStates > 100 * 1024 * 1024) { // 100MB
-        status = 'unhealthy';
+
+      if (
+        metrics.memoryUsage.routeStates +
+          metrics.memoryUsage.collaborationStates >
+        100 * 1024 * 1024
+      ) {
+        // 100MB
+        status = "unhealthy";
       }
 
       return {
         status,
-        component: 'state_manager',
+        component: "state_manager",
         metrics,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      this.logger.error('Health check failed', { error });
+      this.logger.error("Health check failed", { error });
       return {
-        status: 'unhealthy',
-        component: 'state_manager',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
+        status: "unhealthy",
+        component: "state_manager",
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
       };
     }
   }

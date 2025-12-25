@@ -9,9 +9,9 @@
 
 export const getLicenseInfo = () => {
   return {
-    name: 'Complete Arbitration Mesh',
-    version: '2.0.0',
-    license: 'LicenseRef-CAM-Attribution',
-    contact: 'EdwardsTechPros@Outlook.com'
+    name: "Complete Arbitration Mesh",
+    version: "2.0.0",
+    license: "LicenseRef-CAM-Attribution",
+    contact: "EdwardsTechPros@Outlook.com",
   };
 };

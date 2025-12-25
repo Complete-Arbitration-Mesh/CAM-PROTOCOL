@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: LicenseRef-CAM-Attribution
 /**
  * Complete Arbitration Mesh - Core Integration
- * 
+ *
  * This is the main class that integrates the routing system (CAM Core) with
  * the Inter-Agent Collaboration Protocol (IACP) to provide a unified platform
  * for both intelligent request routing and sophisticated multi-agent collaboration.
  */
 
-import { FastPathRouter } from '../routing/fastpath-router.js';
-import { CollaborationEngine } from '../collaboration/collaboration-engine.js';
-import { StateManager } from './state-manager.js';
-import { AuthenticationService } from './auth-service.js';
-import { Logger, LogLevel } from '../shared/logger.js';
-import { Config } from '../shared/config.js';
+import { FastPathRouter } from "../routing/fastpath-router.js";
+import { CollaborationEngine } from "../collaboration/collaboration-engine.js";
+import { StateManager } from "./state-manager.js";
+import { AuthenticationService } from "./auth-service.js";
+import { Logger, LogLevel } from "../shared/logger.js";
+import { Config } from "../shared/config.js";
 import type {
   AICoreRequest,
   AICoreResponse,
@@ -31,16 +31,16 @@ import type {
   ConfigurationUpdate,
   ConfigurationResult,
   MetricsQuery,
-  MetricsData
-} from '../shared/types.js';
+  MetricsData,
+} from "../shared/types.js";
 
 export interface CompleteArbitrationMeshOptions {
   apiKey: string;
   endpoint?: string;
   jwtSecret?: string;
   tokenExpiry?: string;
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
-  environment?: 'development' | 'staging' | 'production';
+  logLevel?: "debug" | "info" | "warn" | "error";
+  environment?: "development" | "staging" | "production";
 }
 
 export class CompleteArbitrationMesh {
@@ -53,22 +53,22 @@ export class CompleteArbitrationMesh {
 
   constructor(options: CompleteArbitrationMeshOptions) {
     this.config = new Config({
-      logLevel: options.logLevel || 'info',
-      environment: options.environment || 'development',
-      apiVersion: '2.0.0'
+      logLevel: options.logLevel || "info",
+      environment: options.environment || "development",
+      apiVersion: "2.0.0",
     });
-    
+
     this.logger = new Logger(this.config.logLevel as LogLevel);
-      this.stateManager = new StateManager();
-    this.authService = new AuthenticationService({ 
-      jwtSecret: options.jwtSecret || 'default-secret-change-in-production',
-      tokenExpiry: options.tokenExpiry || '24h'
+    this.stateManager = new StateManager();
+    this.authService = new AuthenticationService({
+      jwtSecret: options.jwtSecret || "default-secret-change-in-production",
+      tokenExpiry: options.tokenExpiry || "24h",
     });
-    
+
     this.fastPathRouter = new FastPathRouter();
     this.collaborationEngine = new CollaborationEngine();
 
-    this.logger.info('Complete Arbitration Mesh initialized successfully');
+    this.logger.info("Complete Arbitration Mesh initialized successfully");
   }
 
   // =========================================================================
@@ -80,19 +80,19 @@ export class CompleteArbitrationMesh {
    * This is the core CAM Classic functionality preserved from the original system
    */
   async routeRequest(request: AICoreRequest): Promise<AICoreResponse> {
-    this.logger.debug('Routing request through FastPath system', { request });
-    
+    this.logger.debug("Routing request through FastPath system", { request });
+
     try {
       const result = await this.fastPathRouter.routeRequest(request);
-        this.logger.info('Request routed successfully', {
+      this.logger.info("Request routed successfully", {
         provider: result.provider,
-        latency: result.metadata?.['latency'] || result.latency,
-        cost: result.metadata?.['cost'] || result.cost
+        latency: result.metadata?.["latency"] || result.latency,
+        cost: result.metadata?.["cost"] || result.cost,
       });
-      
+
       return result;
     } catch (error) {
-      this.logger.error('Request routing failed', { error, request });
+      this.logger.error("Request routing failed", { error, request });
       throw error;
     }
   }
@@ -100,14 +100,18 @@ export class CompleteArbitrationMesh {
   /**
    * Get the optimal provider for given requirements without making a request
    */
-  async getOptimalProvider(requirements: ProviderRequirements): Promise<ProviderInfo> {
+  async getOptimalProvider(
+    requirements: ProviderRequirements,
+  ): Promise<ProviderInfo> {
     return this.fastPathRouter.getOptimalProvider(requirements);
   }
 
   /**
    * Validate a request against current policies
    */
-  async validatePolicy(request: PolicyValidationRequest): Promise<PolicyValidationResult> {
+  async validatePolicy(
+    request: PolicyValidationRequest,
+  ): Promise<PolicyValidationResult> {
     return this.fastPathRouter.validatePolicy(request);
   }
 
@@ -119,21 +123,24 @@ export class CompleteArbitrationMesh {
    * Initiate a collaboration session between multiple agents
    * This is the new IACP functionality that extends the platform
    */
-  async initiateCollaboration(request: CollaborationRequest): Promise<CollaborationSession> {
-    this.logger.debug('Initiating collaboration session', { request });
-    
+  async initiateCollaboration(
+    request: CollaborationRequest,
+  ): Promise<CollaborationSession> {
+    this.logger.debug("Initiating collaboration session", { request });
+
     try {
-      const session = await this.collaborationEngine.initiateCollaboration(request);
-      
-      this.logger.info('Collaboration session initiated successfully', {
+      const session =
+        await this.collaborationEngine.initiateCollaboration(request);
+
+      this.logger.info("Collaboration session initiated successfully", {
         sessionId: session.id,
         agentCount: session.agents.length,
-        taskType: request.task
+        taskType: request.task,
       });
-      
+
       return session;
     } catch (error) {
-      this.logger.error('Collaboration initiation failed', { error, request });
+      this.logger.error("Collaboration initiation failed", { error, request });
       throw error;
     }
   }
@@ -141,7 +148,9 @@ export class CompleteArbitrationMesh {
   /**
    * Discover available agents based on required capabilities
    */
-  async discoverAgents(capabilities: AgentCapabilities[]): Promise<AgentInfo[]> {
+  async discoverAgents(
+    capabilities: AgentCapabilities[],
+  ): Promise<AgentInfo[]> {
     return this.collaborationEngine.discoverAgents(capabilities);
   }
 
@@ -155,21 +164,24 @@ export class CompleteArbitrationMesh {
   /**
    * Orchestrate a complete collaboration workflow
    */
-  async orchestrateWorkflow(workflow: CollaborationWorkflow): Promise<CollaborationResult> {
-    this.logger.debug('Orchestrating collaboration workflow', { workflow });
-    
+  async orchestrateWorkflow(
+    workflow: CollaborationWorkflow,
+  ): Promise<CollaborationResult> {
+    this.logger.debug("Orchestrating collaboration workflow", { workflow });
+
     try {
-      const result = await this.collaborationEngine.orchestrateWorkflow(workflow);
-      
-      this.logger.info('Workflow orchestration completed', {
+      const result =
+        await this.collaborationEngine.orchestrateWorkflow(workflow);
+
+      this.logger.info("Workflow orchestration completed", {
         workflowId: workflow.id,
         duration: result.metadata?.duration,
-        agentCount: result.participatingAgents.length
+        agentCount: result.participatingAgents.length,
       });
-      
+
       return result;
     } catch (error) {
-      this.logger.error('Workflow orchestration failed', { error, workflow });
+      this.logger.error("Workflow orchestration failed", { error, workflow });
       throw error;
     }
   }
@@ -180,21 +192,23 @@ export class CompleteArbitrationMesh {
   /**
    * Update system configuration
    */
-  async manageConfiguration(config: ConfigurationUpdate): Promise<ConfigurationResult> {
-    this.logger.debug('Updating configuration', { config });
-    
+  async manageConfiguration(
+    config: ConfigurationUpdate,
+  ): Promise<ConfigurationResult> {
+    this.logger.debug("Updating configuration", { config });
+
     try {
       const result = await this.stateManager.updateConfiguration(config);
-      
+
       // Update internal configuration
       if (config.logLevel) {
         this.config.update({ logLevel: config.logLevel });
       }
-      
-      this.logger.info('Configuration updated successfully', { result });
+
+      this.logger.info("Configuration updated successfully", { result });
       return result;
     } catch (error) {
-      this.logger.error('Configuration update failed', { error, config });
+      this.logger.error("Configuration update failed", { error, config });
       throw error;
     }
   }
@@ -209,15 +223,27 @@ export class CompleteArbitrationMesh {
   /**
    * Get current system health status
    */
-  async getHealthStatus(): Promise<{ status: 'healthy' | 'degraded' | 'unhealthy'; details: any }> {
+  async getHealthStatus(): Promise<{
+    status: "healthy" | "degraded" | "unhealthy";
+    details: any;
+  }> {
     const routingHealth = await this.fastPathRouter.getHealthStatus();
-    const collaborationHealth = await this.collaborationEngine.getHealthStatus();
+    const collaborationHealth =
+      await this.collaborationEngine.getHealthStatus();
     const stateHealth = await this.stateManager.getHealthStatus();
 
-    const allHealthy = [routingHealth, collaborationHealth, stateHealth].every(h => h.status === 'healthy');
-    const anyUnhealthy = [routingHealth, collaborationHealth, stateHealth].some(h => h.status === 'unhealthy');
+    const allHealthy = [routingHealth, collaborationHealth, stateHealth].every(
+      (h) => h.status === "healthy",
+    );
+    const anyUnhealthy = [routingHealth, collaborationHealth, stateHealth].some(
+      (h) => h.status === "unhealthy",
+    );
 
-    const overallStatus = anyUnhealthy ? 'unhealthy' : allHealthy ? 'healthy' : 'degraded';
+    const overallStatus = anyUnhealthy
+      ? "unhealthy"
+      : allHealthy
+        ? "healthy"
+        : "degraded";
 
     return {
       status: overallStatus,
@@ -225,8 +251,8 @@ export class CompleteArbitrationMesh {
         routing: routingHealth,
         collaboration: collaborationHealth,
         state: stateHealth,
-        timestamp: new Date().toISOString()
-      }
+        timestamp: new Date().toISOString(),
+      },
     };
   }
 
@@ -234,18 +260,18 @@ export class CompleteArbitrationMesh {
    * Gracefully shutdown the system
    */
   async shutdown(): Promise<void> {
-    this.logger.info('Initiating graceful shutdown');
-    
+    this.logger.info("Initiating graceful shutdown");
+
     try {
       await Promise.all([
         this.fastPathRouter.shutdown(),
         this.collaborationEngine.shutdown(),
-        this.stateManager.shutdown()
+        this.stateManager.shutdown(),
       ]);
-      
-      this.logger.info('Complete Arbitration Mesh shutdown completed');
+
+      this.logger.info("Complete Arbitration Mesh shutdown completed");
     } catch (error) {
-      this.logger.error('Error during shutdown', { error });
+      this.logger.error("Error during shutdown", { error });
       throw error;
     }
   }

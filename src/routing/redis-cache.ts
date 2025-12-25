@@ -5,10 +5,10 @@
  * Implements the same interface as the in-memory CacheManager.
  */
 
-import Redis from 'ioredis';
-import { createHash } from 'crypto';
-import { Logger } from '../shared/logger.js';
-import type { AICoreRequest, AICoreResponse } from '../shared/types.js';
+import Redis from "ioredis";
+import { createHash } from "crypto";
+import { Logger } from "../shared/logger.js";
+import type { AICoreRequest, AICoreResponse } from "../shared/types.js";
 
 export interface RedisCacheOptions {
   host?: string;
@@ -49,8 +49,8 @@ export class RedisCache {
   private totalCostSaved: number = 0;
 
   constructor(options: RedisCacheOptions = {}) {
-    this.logger = new Logger('info');
-    this.keyPrefix = options.keyPrefix || 'cam:cache:';
+    this.logger = new Logger("info");
+    this.keyPrefix = options.keyPrefix || "cam:cache:";
     this.defaultTtlMs = options.defaultTtlMs || 5 * 60 * 1000;
     this.enabled = options.enabled ?? true;
 
@@ -64,9 +64,10 @@ export class RedisCache {
    */
   private connect(options: RedisCacheOptions): void {
     try {
-      const host = options.host || process.env['REDIS_HOST'] || 'localhost';
-      const port = options.port || parseInt(process.env['REDIS_PORT'] || '6379');
-      const password = options.password || process.env['REDIS_PASSWORD'];
+      const host = options.host || process.env["REDIS_HOST"] || "localhost";
+      const port =
+        options.port || parseInt(process.env["REDIS_PORT"] || "6379");
+      const password = options.password || process.env["REDIS_PASSWORD"];
 
       // Build connection URL
       let url = `redis://`;
@@ -79,32 +80,32 @@ export class RedisCache {
         maxRetriesPerRequest: options.maxRetries || 3,
         retryStrategy: (times: number) => {
           if (times > (options.maxRetries || 3)) {
-            this.logger.error('Redis connection failed after max retries');
+            this.logger.error("Redis connection failed after max retries");
             return null;
           }
           return options.retryDelayMs || Math.min(times * 100, 3000);
         },
-        lazyConnect: true
+        lazyConnect: true,
       });
 
-      this.client.on('connect', () => {
-        this.logger.info('Redis cache connected');
+      this.client.on("connect", () => {
+        this.logger.info("Redis cache connected");
       });
 
-      this.client.on('error', (err) => {
-        this.logger.error('Redis cache error', { error: err.message });
+      this.client.on("error", (err) => {
+        this.logger.error("Redis cache error", { error: err.message });
       });
 
-      this.client.on('close', () => {
-        this.logger.warn('Redis cache connection closed');
+      this.client.on("close", () => {
+        this.logger.warn("Redis cache connection closed");
       });
 
       // Don't block on connection
       this.client.connect().catch((err) => {
-        this.logger.error('Failed to connect to Redis', { error: err.message });
+        this.logger.error("Failed to connect to Redis", { error: err.message });
       });
     } catch (error) {
-      this.logger.error('Failed to create Redis client', { error });
+      this.logger.error("Failed to create Redis client", { error });
       this.client = null;
     }
   }
@@ -115,14 +116,14 @@ export class RedisCache {
   generateCacheKey(request: AICoreRequest, providerId?: string): string {
     const keyData = {
       prompt: request.prompt,
-      model: request.model || 'default',
+      model: request.model || "default",
       temperature: Math.round((request.temperature ?? 0.7) * 100) / 100,
-      provider: providerId || 'any'
+      provider: providerId || "any",
     };
 
-    const hash = createHash('sha256')
+    const hash = createHash("sha256")
       .update(JSON.stringify(keyData))
-      .digest('hex')
+      .digest("hex")
       .substring(0, 16);
 
     return `${this.keyPrefix}${hash}`;
@@ -131,7 +132,10 @@ export class RedisCache {
   /**
    * Get a cached response
    */
-  async get(request: AICoreRequest, providerId?: string): Promise<AICoreResponse | null> {
+  async get(
+    request: AICoreRequest,
+    providerId?: string,
+  ): Promise<AICoreResponse | null> {
     if (!this.enabled || !this.client) {
       return null;
     }
@@ -151,12 +155,12 @@ export class RedisCache {
 
       // Update hit count
       entry.hitCount++;
-      await this.client.set(key, JSON.stringify(entry), 'KEEPTTL');
+      await this.client.set(key, JSON.stringify(entry), "KEEPTTL");
 
-      this.logger.debug('Redis cache hit', {
+      this.logger.debug("Redis cache hit", {
         key,
         hitCount: entry.hitCount,
-        costSaved: entry.response.cost
+        costSaved: entry.response.cost,
       });
 
       // Return response with cache metadata
@@ -168,13 +172,13 @@ export class RedisCache {
           cacheKey: key,
           originalCost: entry.response.cost,
           cacheHitCount: entry.hitCount,
-          cacheBackend: 'redis'
+          cacheBackend: "redis",
         },
         cost: 0,
-        latency: 0
+        latency: 0,
       };
     } catch (error) {
-      this.logger.error('Redis cache get error', { error });
+      this.logger.error("Redis cache get error", { error });
       this.misses++;
       return null;
     }
@@ -187,14 +191,14 @@ export class RedisCache {
     request: AICoreRequest,
     response: AICoreResponse,
     ttlMs?: number,
-    providerId?: string
+    providerId?: string,
   ): Promise<void> {
     if (!this.enabled || !this.client) {
       return;
     }
 
     // Don't cache error or fallback responses
-    if (response.metadata?.['error'] || response.metadata?.['fallback']) {
+    if (response.metadata?.["error"] || response.metadata?.["fallback"]) {
       return;
     }
 
@@ -205,25 +209,28 @@ export class RedisCache {
       const entry: CachedEntry = {
         response,
         createdAt: Date.now(),
-        hitCount: 0
+        hitCount: 0,
       };
 
-      await this.client.set(key, JSON.stringify(entry), 'PX', ttl);
+      await this.client.set(key, JSON.stringify(entry), "PX", ttl);
 
-      this.logger.debug('Redis cache set', {
+      this.logger.debug("Redis cache set", {
         key,
         ttlMs: ttl,
-        cost: response.cost
+        cost: response.cost,
       });
     } catch (error) {
-      this.logger.error('Redis cache set error', { error });
+      this.logger.error("Redis cache set error", { error });
     }
   }
 
   /**
    * Invalidate a specific cache entry
    */
-  async invalidate(request: AICoreRequest, providerId?: string): Promise<boolean> {
+  async invalidate(
+    request: AICoreRequest,
+    providerId?: string,
+  ): Promise<boolean> {
     if (!this.client) {
       return false;
     }
@@ -233,7 +240,7 @@ export class RedisCache {
       const deleted = await this.client.del(key);
       return deleted > 0;
     } catch (error) {
-      this.logger.error('Redis cache invalidate error', { error });
+      this.logger.error("Redis cache invalidate error", { error });
       return false;
     }
   }
@@ -251,9 +258,9 @@ export class RedisCache {
       if (keys.length > 0) {
         await this.client.del(...keys);
       }
-      this.logger.info('Redis cache cleared', { keysRemoved: keys.length });
+      this.logger.info("Redis cache cleared", { keysRemoved: keys.length });
     } catch (error) {
-      this.logger.error('Redis cache clear error', { error });
+      this.logger.error("Redis cache clear error", { error });
     }
   }
 
@@ -269,7 +276,7 @@ export class RedisCache {
       misses: this.misses,
       hitRate: Math.round(hitRate * 1000) / 1000,
       totalCostSaved: Math.round(this.totalCostSaved * 10000) / 10000,
-      connected: this.client?.status === 'ready'
+      connected: this.client?.status === "ready",
     };
   }
 
@@ -277,7 +284,7 @@ export class RedisCache {
    * Check if cache is enabled and connected
    */
   isEnabled(): boolean {
-    return this.enabled && this.client?.status === 'ready';
+    return this.enabled && this.client?.status === "ready";
   }
 
   /**
@@ -285,7 +292,7 @@ export class RedisCache {
    */
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    this.logger.info(`Redis cache ${enabled ? 'enabled' : 'disabled'}`);
+    this.logger.info(`Redis cache ${enabled ? "enabled" : "disabled"}`);
   }
 
   /**
@@ -314,7 +321,7 @@ export class RedisCache {
 
     try {
       const result = await this.client.ping();
-      return result === 'PONG';
+      return result === "PONG";
     } catch {
       return false;
     }
@@ -327,7 +334,7 @@ export class RedisCache {
     if (this.client) {
       await this.client.quit();
       this.client = null;
-      this.logger.info('Redis cache shutdown complete');
+      this.logger.info("Redis cache shutdown complete");
     }
   }
 }
