@@ -18,8 +18,9 @@ import type { ProviderConfig } from '../shared/config.js';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
-import OpenAI from 'openai';
+import OpenAI, { AzureOpenAI } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { CacheManager, CacheStats } from './cache-manager.js';
 import { RateLimiter, RateLimitConfig, RateLimitStats } from './rate-limiter.js';
 
@@ -47,6 +48,8 @@ export class FastPathRouter {
   private healthMetrics: Map<string, ProviderHealthMetrics> = new Map();
   private openaiClients: Map<string, OpenAI> = new Map();
   private anthropicClients: Map<string, Anthropic> = new Map();
+  private googleClients: Map<string, GoogleGenerativeAI> = new Map();
+  private azureClients: Map<string, AzureOpenAI> = new Map();
   private cacheManager: CacheManager;
   private rateLimiter: RateLimiter;
   private readonly MAX_LATENCY_SAMPLES = 100;  // Keep last 100 latencies for percentile calc
@@ -113,6 +116,39 @@ export class FastPathRouter {
       this.anthropicClients.set(providerId, client);
     }
     return this.anthropicClients.get(providerId)!;
+  }
+
+  /**
+   * Get or create a Google AI client for the given provider
+   */
+  private getGoogleClient(providerId: string): GoogleGenerativeAI {
+    if (!this.googleClients.has(providerId)) {
+      const cfg = this.providerConfigs[providerId];
+      if (!cfg) throw new CAMError(`Missing configuration for provider ${providerId}`, 'CONFIG_NOT_FOUND');
+
+      const client = new GoogleGenerativeAI(cfg.apiKey);
+      this.googleClients.set(providerId, client);
+    }
+    return this.googleClients.get(providerId)!;
+  }
+
+  /**
+   * Get or create an Azure OpenAI client for the given provider
+   */
+  private getAzureClient(providerId: string): AzureOpenAI {
+    if (!this.azureClients.has(providerId)) {
+      const cfg = this.providerConfigs[providerId];
+      if (!cfg) throw new CAMError(`Missing configuration for provider ${providerId}`, 'CONFIG_NOT_FOUND');
+      if (!cfg.endpoint) throw new CAMError(`Azure endpoint required for provider ${providerId}`, 'CONFIG_INVALID');
+
+      const client = new AzureOpenAI({
+        apiKey: cfg.apiKey,
+        endpoint: cfg.endpoint,
+        apiVersion: '2024-02-15-preview'
+      });
+      this.azureClients.set(providerId, client);
+    }
+    return this.azureClients.get(providerId)!;
   }
 
   /**
@@ -1101,111 +1137,92 @@ export class FastPathRouter {
   }
   
   /**
-   * Execute a request with Google Gemini API
-   * Uses raw fetch as Google SDK has different patterns
+   * Execute a request with Google Gemini using the official SDK
    */
   private async executeGoogleRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
-    const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
-
-    const urlBase = cfg.endpoint || 'https://generativelanguage.googleapis.com/v1beta';
-    const url = `${urlBase}/models/${model}:generateContent?key=${cfg.apiKey}`;
+    this.loadProviderConfigs();
     const startTime = Date.now();
 
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: request.prompt }] }],
-          generationConfig: {
-            temperature: request.temperature ?? 0.7,
-            maxOutputTokens: request.maxTokens
-          }
-        })
+      const client = this.getGoogleClient(provider.id);
+      const generationConfig: Record<string, number> = {
+        temperature: request.temperature ?? 0.7
+      };
+      if (request.maxTokens !== undefined) {
+        generationConfig['maxOutputTokens'] = request.maxTokens;
+      }
+
+      const genModel = client.getGenerativeModel({
+        model,
+        generationConfig
       });
 
-      const data = await res.json() as any;
+      const result = await genModel.generateContent(request.prompt);
+      const response = result.response;
       const latency = Date.now() - startTime;
-
-      if (!res.ok) {
-        this.recordProviderMetrics(provider.id, latency, false, data.error?.message);
-        throw new CAMError(data.error?.message || 'Google request failed', 'PROVIDER_ERROR');
-      }
 
       this.recordProviderMetrics(provider.id, latency, true);
 
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const usage = data.usageMetadata || {};
+      const text = response.text();
+      const usage = response.usageMetadata;
 
       return {
         content: text,
         provider: provider.id,
         model,
         usage: {
-          promptTokens: usage.promptTokenCount || 0,
-          completionTokens: usage.candidatesTokenCount || 0,
-          totalTokens: usage.totalTokenCount || 0
+          promptTokens: usage?.promptTokenCount || 0,
+          completionTokens: usage?.candidatesTokenCount || 0,
+          totalTokens: usage?.totalTokenCount || 0
         },
         latency: 0,
         cost: 0,
         metadata: {
           provider: provider.name,
           timestamp: new Date().toISOString(),
-          finishReason: data.candidates?.[0]?.finishReason
+          finishReason: response.candidates?.[0]?.finishReason,
+          sdkVersion: 'google-generative-ai'
         }
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const latency = Date.now() - startTime;
       this.recordProviderMetrics(provider.id, latency, false, message);
-      throw new CAMError(message, 'PROVIDER_ERROR');
+      throw new CAMError(`Google AI error: ${message}`, 'PROVIDER_ERROR');
     }
   }
-  
+
   /**
-   * Execute a request with Azure OpenAI
-   * Uses the Azure OpenAI REST API with metrics tracking
+   * Execute a request with Azure OpenAI using the official SDK
    */
   private async executeAzureRequest(request: AICoreRequest, provider: ProviderInfo, model: string): Promise<AICoreResponse> {
-    const cfg = this.providerConfigs[provider.id];
-    if (!cfg) throw new CAMError(`Missing configuration for provider ${provider.id}`, 'CONFIG_NOT_FOUND');
-
-    const url = `${cfg.endpoint}/openai/deployments/${model}/chat/completions?api-version=2023-05-15`;
+    this.loadProviderConfigs();
     const startTime = Date.now();
 
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': cfg.apiKey
-        },
-        body: JSON.stringify({
-          messages: [{ role: 'user', content: request.prompt }],
-          temperature: request.temperature ?? 0.7,
-          max_tokens: request.maxTokens
-        })
+      const client = this.getAzureClient(provider.id);
+
+      const completion = await client.chat.completions.create({
+        model,  // This is the deployment name in Azure
+        messages: [{ role: 'user', content: request.prompt }],
+        temperature: request.temperature ?? 0.7,
+        max_tokens: request.maxTokens ?? null
       });
 
-      const data = await res.json() as any;
       const latency = Date.now() - startTime;
-
-      if (!res.ok) {
-        this.recordProviderMetrics(provider.id, latency, false, data.error?.message);
-        throw new CAMError(data.error?.message || 'Azure request failed', 'PROVIDER_ERROR');
-      }
-
       this.recordProviderMetrics(provider.id, latency, true);
 
+      const content = completion.choices[0]?.message?.content || '';
+      const usage = completion.usage;
+
       return {
-        content: data.choices?.[0]?.message?.content || '',
+        content,
         provider: provider.id,
-        model,
+        model: completion.model,
         usage: {
-          promptTokens: data.usage?.prompt_tokens || 0,
-          completionTokens: data.usage?.completion_tokens || 0,
-          totalTokens: data.usage?.total_tokens || 0
+          promptTokens: usage?.prompt_tokens || 0,
+          completionTokens: usage?.completion_tokens || 0,
+          totalTokens: usage?.total_tokens || 0
         },
         latency: 0,
         cost: 0,
@@ -1213,14 +1230,15 @@ export class FastPathRouter {
           provider: provider.name,
           timestamp: new Date().toISOString(),
           region: request.requirements?.region || 'eastus',
-          finishReason: data.choices?.[0]?.finish_reason
+          finishReason: completion.choices[0]?.finish_reason,
+          sdkVersion: 'azure-openai-sdk'
         }
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       const latency = Date.now() - startTime;
       this.recordProviderMetrics(provider.id, latency, false, message);
-      throw new CAMError(message, 'PROVIDER_ERROR');
+      throw new CAMError(`Azure OpenAI error: ${message}`, 'PROVIDER_ERROR');
     }
   }
 
