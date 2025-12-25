@@ -18,9 +18,9 @@
 </div>
 
 
-**Production Status:** CAM Protocol is **production ready** as of the [v2.0.0 release](CHANGELOG.md) on May 28, 2025. The [v2.1.0 release](CHANGELOG.md) adds official SDK integrations, response caching, streaming support, and rate limiting.
+**Production Status:** CAM Protocol is **production ready** as of the [v2.0.0 release](CHANGELOG.md) on May 28, 2025. The [v2.1.0 release](CHANGELOG.md) adds official SDK integrations, response caching, streaming support, rate limiting, and **MCP Gateway** integration.
 
-**Security Notice:** All security hardening tasks have been completed. Refer to the [Security Checklist](docs/security/SECURITY_CHECKLIST.md) for details.
+**Security Status:** Core security hardening complete. See [Security Checklist](docs/security/SECURITY_CHECKLIST.md) for current status. Report vulnerabilities to [edwardstechpros@outlook.com](mailto:edwardstechpros@outlook.com).
 
 
 ## 🌟 Overview
@@ -57,6 +57,81 @@ Organizations face evolving challenges in the AI space:
 - **Role-Based Collaboration** - Assign specialized roles to agents
 - **Secure Inter-Agent Messaging** - Enable protected agent communication
 - **Collaboration Marketplace** - Access specialized agent capabilities
+
+## 🔌 MCP Gateway Mode (Preview)
+
+CAM integrates with [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) as a **governance layer** that sits above MCP servers, providing policy enforcement, intelligent routing, and audit capabilities.
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Your AI Application                       │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    CAM MCP Gateway                               │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Policies   │  │  Arbitration │  │    Audit     │          │
+│  │  Trust Tiers │  │   Scoring    │  │   Logging    │          │
+│  │  Rate Limits │  │  Cost/Latency│  │   Tracing    │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└───────────────────────────────┬─────────────────────────────────┘
+                                │
+         ┌──────────────────────┼──────────────────────┐
+         ▼                      ▼                      ▼
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│  MCP Server A   │   │  MCP Server B   │   │  MCP Server C   │
+│  (File System)  │   │   (Database)    │   │  (Web Search)   │
+└─────────────────┘   └─────────────────┘   └─────────────────┘
+```
+
+### What CAM Adds to MCP
+
+| MCP Provides | CAM Adds |
+|--------------|----------|
+| Tool discovery | **Policy-based tool selection** |
+| Server connections | **Trust tier enforcement** |
+| Tool execution | **Cost/latency arbitration** |
+| — | **Audit logging with trace IDs** |
+| — | **Rate limiting per tenant** |
+| — | **Data classification filtering** |
+
+### Quick Example
+
+```typescript
+import { MCPGateway } from '@cam-protocol/complete-arbitration-mesh/mcp';
+
+const gateway = new MCPGateway({
+  servers: [
+    { id: 'fs', name: 'filesystem', transport: 'stdio', command: 'mcp-fs', trustTier: 'trusted', enabled: true },
+    { id: 'web', name: 'websearch', transport: 'sse', endpoint: 'http://localhost:3001', trustTier: 'standard', enabled: true },
+  ],
+  policies: [{
+    id: 'no-pii-external',
+    name: 'Block PII to external tools',
+    priority: 100,
+    enabled: true,
+    conditions: [{ field: 'tool.dataClassifications', operator: 'contains', value: 'pii' }],
+    actions: ['deny'],
+  }],
+  rateLimit: { enabled: true, requestsPerMinute: 100 },
+  audit: { enabled: true, retentionDays: 30, includeArguments: true, includeResults: false },
+});
+
+await gateway.initialize();
+
+// CAM selects best tool, enforces policies, logs decision
+const result = await gateway.callTool({
+  toolName: 'search',
+  arguments: { query: 'latest news' },
+  tenantId: 'tenant-123',
+});
+
+console.log(result.traceId);  // Audit trace
+console.log(result.serverId); // Which MCP server was used
+```
+
+See [docs/architecture/MCP-ENHANCEMENT-PLAN.md](docs/architecture/MCP-ENHANCEMENT-PLAN.md) for the full integration roadmap.
 
 ## 📚 Quick Start
 
@@ -189,26 +264,26 @@ func main() {
 
 ## 🏗️ Architecture
 
-The Complete Arbitration Mesh integrates two powerful systems:
+The Complete Arbitration Mesh integrates three systems:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                      Complete Arbitration Mesh                          │
-├─────────────────────────────┬───────────────────────────────────────────┤
-│      Routing System         │      Inter-Agent Collaboration            │
-│       (CAM Core)            │            Protocol (IACP)                │
-├─────────────────────────────┼───────────────────────────────────────────┤
-│ • FastPath Routing          │ • Agent Discovery                         │
-│ • Provider Selection        │ • Task Decomposition                      │
-│ • Policy Enforcement        │ • Role-Based Collaboration                │
-│ • Cost Optimization         │ • Secure Messaging                        │
-└─────────────────────────────┴───────────────────────────────────────────┘
+├─────────────────────┬─────────────────────┬─────────────────────────────┤
+│   Routing System    │   MCP Gateway       │  Inter-Agent Collaboration  │
+│    (CAM Core)       │    (Preview)        │   Protocol (IACP)           │
+├─────────────────────┼─────────────────────┼─────────────────────────────┤
+│ • FastPath Routing  │ • MCP Server Mgmt   │ • Agent Discovery           │
+│ • Provider Selection│ • Policy Arbitration│ • Task Decomposition        │
+│ • Cost Optimization │ • Trust Tiers       │ • Role-Based Collaboration  │
+│ • Rate Limiting     │ • Audit Logging     │ • Secure Messaging          │
+└─────────────────────┴─────────────────────┴─────────────────────────────┘
                                   │
 ┌─────────────────────────────────┴───────────────────────────────────────┐
 │                         Shared Infrastructure                           │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ • Authentication & Authorization  • Provider Connectors                 │
-│ • State Management               • Metrics & Telemetry                  │
+│ • Authentication & Authorization  • Provider/MCP Connectors             │
+│ • State Management               • Metrics & Telemetry (OTel)           │
 │ • Configuration                  • Security Layer                       │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -240,8 +315,8 @@ For a complete overview of all documentation, see our [Documentation Index](docs
 
 ```bash
 # Clone the repository
-git clone https://github.com/cam-protocol/complete-arbitration-mesh.git
-cd complete-arbitration-mesh
+git clone https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL.git
+cd CAM-PROTOCOL
 
 # Install dependencies
 npm install
@@ -270,7 +345,7 @@ The Complete Arbitration Mesh takes security seriously:
 - **Audit Logging** - Comprehensive audit trails for compliance
 - **FIPS Compliance** - Available in Enterprise tier
 
-**Note:** The platform is still undergoing security hardening. Please review the [Security Pre-Launch Checklist](docs/security/SECURITY_CHECKLIST.md) for outstanding tasks before deploying CAM in a sensitive environment.
+See [Security Checklist](docs/security/SECURITY_CHECKLIST.md) for detailed security controls and deployment guidance.
 
 ## 📋 Subscription Tiers
 
@@ -306,40 +381,43 @@ authorization and meeting attribution requirements.
 
 ## 🗺️ Roadmap
 
-See our [public roadmap](https://github.com/cam-protocol/complete-arbitration-mesh/projects/1) for upcoming features and improvements.
+See our [public roadmap](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/projects/1) for upcoming features and improvements.
 
 ## 📊 Value Demonstration
 
-We've created comprehensive benchmarks and demonstrations to show the value of CAM Protocol:
+Run the benchmarks yourself to measure CAM's impact in your environment:
 
 ### Cost Optimization
 
-On average, organizations using CAM Protocol see **30-40% reduction in AI API costs** while maintaining quality.
+Intelligent routing can reduce API costs by selecting optimal providers per request.
 
 ```bash
-# Run the cost optimization benchmark
+# Run cost benchmark (compares routing strategies)
 npm run benchmark:cost
+# Output: costs.json with per-provider breakdown
 ```
 
-### Enhanced Capabilities
+### Multi-Agent Collaboration
 
-Multi-agent collaboration through CAM Protocol provides **35-50% improvement in task completion quality**.
+Task decomposition + role-based routing improves complex task completion.
 
 ```bash
-# Run the multi-agent collaboration benchmark
+# Run collaboration benchmark
 npm run benchmark:collaboration
+# Output: collaboration-results.json
 ```
 
-### Reliability & Governance
+### Reliability
 
-CAM Protocol provides **99.99% availability** through intelligent failover and ensures **100% policy compliance** across all AI usage.
+Automatic failover and health-based routing maintain availability.
 
 ```bash
-# Run the full value demonstration
+# Run reliability simulation
 npm run demo:value
+# Output: failover timing + recovery metrics
 ```
 
-See our [Proof of Value](docs/PROOF_OF_VALUE.md) document for comprehensive benchmarking results and case studies.
+**Methodology:** Benchmarks run against mock providers in `tests/benchmarks/`. Results vary by provider latency, pricing, and workload. See [docs/PROOF_OF_VALUE.md](docs/PROOF_OF_VALUE.md) for environment assumptions.
 
 ## 🔒 Legal & Compliance
 
