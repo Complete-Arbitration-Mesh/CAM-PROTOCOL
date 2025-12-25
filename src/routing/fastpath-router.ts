@@ -17,7 +17,6 @@ import type {
 import type { ProviderConfig } from '../shared/config.js';
 import fs from 'fs';
 import path from 'path';
-import fetch from 'node-fetch';
 import OpenAI, { AzureOpenAI } from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -297,7 +296,6 @@ export class FastPathRouter {
 
     // Stream based on provider type
     const startTime = Date.now();
-    let totalTokens = 0;
 
     try {
       switch (provider.type) {
@@ -394,7 +392,6 @@ export class FastPathRouter {
       max_tokens: request.maxTokens || 1024
     });
 
-    let totalContent = '';
     let inputTokens = 0;
     let outputTokens = 0;
 
@@ -402,7 +399,6 @@ export class FastPathRouter {
       if (event.type === 'content_block_delta') {
         const delta = event.delta;
         if ('text' in delta) {
-          totalContent += delta.text;
           yield {
             content: delta.text,
             done: false,
