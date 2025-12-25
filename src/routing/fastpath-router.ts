@@ -8,6 +8,7 @@ import { CAMError } from '../shared/errors.js';
 import type {
   AICoreRequest,
   AICoreResponse,
+  StreamChunk,
   ProviderRequirements,
   ProviderInfo,
   PolicyValidationRequest,
@@ -222,6 +223,181 @@ export class FastPathRouter {
       this.logger.error('FastPath routing failed', { error, request });
       throw error;
     }
+  }
+
+  /**
+   * Route a streaming request through the system
+   * Returns an async generator that yields chunks of the response
+   */
+  async *routeStreamingRequest(request: AICoreRequest): AsyncGenerator<StreamChunk> {
+    this.logger.debug('FastPath streaming request', { request });
+
+    // Check rate limits
+    const userId = (request.metadata?.['userId'] as string) || 'anonymous';
+    const tier = request.metadata?.['subscriptionTier'] as 'community' | 'professional' | 'enterprise' | undefined;
+    const rateLimitResult = this.rateLimiter.checkLimit(userId, undefined, tier);
+
+    if (!rateLimitResult.allowed) {
+      throw new CAMError(
+        `Rate limit exceeded. Retry after ${Math.ceil((rateLimitResult.retryAfterMs || 0) / 1000)} seconds`,
+        'RATE_LIMIT_EXCEEDED'
+      );
+    }
+
+    // Validate request
+    await this.validateRequest(request);
+
+    // Apply policies
+    const policyResult = await this.applyPolicies(request);
+    if (!policyResult.allowed) {
+      throw new CAMError(`Policy violation: ${policyResult.reason}`, 'POLICY_VIOLATION');
+    }
+
+    // Select provider
+    const provider = await this.selectProvider(request.requirements || {});
+    const model = request.model && provider.models.includes(request.model)
+      ? request.model
+      : provider.models[0] || 'default-model';
+
+    // Stream based on provider type
+    const startTime = Date.now();
+    let totalTokens = 0;
+
+    try {
+      switch (provider.type) {
+        case 'openai':
+          yield* this.streamOpenAIRequest(request, provider, model);
+          break;
+        case 'anthropic':
+          yield* this.streamAnthropicRequest(request, provider, model);
+          break;
+        default:
+          throw new CAMError(`Streaming not supported for provider type: ${provider.type}`, 'STREAMING_NOT_SUPPORTED');
+      }
+
+      const latency = Date.now() - startTime;
+      this.recordProviderMetrics(provider.id, latency, true);
+    } catch (error) {
+      const latency = Date.now() - startTime;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.recordProviderMetrics(provider.id, latency, false, errorMsg);
+      throw error;
+    }
+  }
+
+  /**
+   * Stream OpenAI request using SDK
+   */
+  private async *streamOpenAIRequest(
+    request: AICoreRequest,
+    provider: ProviderInfo,
+    model: string
+  ): AsyncGenerator<StreamChunk> {
+    this.loadProviderConfigs();
+    const client = this.getOpenAIClient(provider.id);
+
+    const stream = await client.chat.completions.create({
+      model,
+      messages: [{ role: 'user', content: request.prompt }],
+      temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens ?? null,
+      stream: true
+    });
+
+    let totalContent = '';
+    let usage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      const finishReason = chunk.choices[0]?.finish_reason;
+
+      if (content) {
+        totalContent += content;
+        yield {
+          content,
+          done: false,
+          provider: provider.id,
+          model
+        };
+      }
+
+      if (finishReason === 'stop') {
+        // Estimate tokens (OpenAI streaming doesn't provide usage in chunks)
+        usage = {
+          promptTokens: Math.ceil(request.prompt.length / 4),
+          completionTokens: Math.ceil(totalContent.length / 4),
+          totalTokens: Math.ceil((request.prompt.length + totalContent.length) / 4)
+        };
+
+        yield {
+          content: '',
+          done: true,
+          provider: provider.id,
+          model,
+          usage
+        };
+      }
+    }
+  }
+
+  /**
+   * Stream Anthropic request using SDK
+   */
+  private async *streamAnthropicRequest(
+    request: AICoreRequest,
+    provider: ProviderInfo,
+    model: string
+  ): AsyncGenerator<StreamChunk> {
+    this.loadProviderConfigs();
+    const client = this.getAnthropicClient(provider.id);
+
+    const stream = await client.messages.stream({
+      model,
+      messages: [{ role: 'user', content: request.prompt }],
+      temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens || 1024
+    });
+
+    let totalContent = '';
+    let inputTokens = 0;
+    let outputTokens = 0;
+
+    for await (const event of stream) {
+      if (event.type === 'content_block_delta') {
+        const delta = event.delta;
+        if ('text' in delta) {
+          totalContent += delta.text;
+          yield {
+            content: delta.text,
+            done: false,
+            provider: provider.id,
+            model
+          };
+        }
+      } else if (event.type === 'message_delta') {
+        // Get usage from final message
+        if ('usage' in event && event.usage) {
+          outputTokens = event.usage.output_tokens;
+        }
+      } else if (event.type === 'message_start') {
+        if ('message' in event && event.message?.usage) {
+          inputTokens = event.message.usage.input_tokens;
+        }
+      }
+    }
+
+    // Final chunk with usage
+    yield {
+      content: '',
+      done: true,
+      provider: provider.id,
+      model,
+      usage: {
+        promptTokens: inputTokens,
+        completionTokens: outputTokens,
+        totalTokens: inputTokens + outputTokens
+      }
+    };
   }
 
   /**

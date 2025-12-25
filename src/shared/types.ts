@@ -170,6 +170,20 @@ export interface AICoreRequest {
   maxTokens?: number;
   requirements?: ProviderRequirements;
   metadata?: Record<string, any>;
+  stream?: boolean;  // Enable streaming response
+}
+
+// Streaming response chunk
+export interface StreamChunk {
+  content: string;
+  done: boolean;
+  provider?: string;
+  model?: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 export interface AICoreResponse {
