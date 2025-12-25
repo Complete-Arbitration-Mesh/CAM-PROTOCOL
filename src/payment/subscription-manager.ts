@@ -1,6 +1,6 @@
 /**
  * Subscription Manager
- * 
+ *
  * Manages subscription tiers, features, and access control
  * based on subscription status.
  */
@@ -8,6 +8,7 @@
 import { Logger } from '../shared/logger.js';
 import { CAMError } from '../shared/errors.js';
 import { StripeService } from './stripe-service.js';
+import { StateManager } from '../core/state-manager.js';
 
 export type SubscriptionTier = 'community' | 'professional' | 'enterprise';
 
@@ -34,11 +35,13 @@ export interface SubscriptionInfo {
 
 export interface SubscriptionManagerOptions {
   stripeService: StripeService;
+  stateManager?: StateManager;
 }
 
 export class SubscriptionManager {
   private logger: Logger;
   private stripeService: StripeService;
+  private stateManager: StateManager | undefined;
   
   // Feature definitions for each tier
   private readonly tierFeatures: Record<SubscriptionTier, SubscriptionFeatures> = {
@@ -77,8 +80,11 @@ export class SubscriptionManager {
   constructor(options: SubscriptionManagerOptions) {
     this.logger = new Logger('info'); // Initialize with a valid LogLevel
     this.stripeService = options.stripeService;
-    
-    this.logger.info('Subscription manager initialized');
+    this.stateManager = options.stateManager;
+
+    this.logger.info('Subscription manager initialized', {
+      hasUsageTracking: !!this.stateManager
+    });
   }
 
   /**
@@ -198,31 +204,49 @@ export class SubscriptionManager {
 
   /**
    * Get usage statistics for a subscription
+   * Uses real usage data from StateManager when available
    */
   async getUsageStats(customerId: string): Promise<{
     requests: { used: number, limit: number },
-    agents: { used: number, limit: number }
+    agents: { used: number, limit: number },
+    tokens?: { used: number },
+    cost?: { used: number },
+    period?: { start: string, end: string }
   }> {
     const subscription = await this.getSubscriptionInfo(customerId);
-    
-    if (!subscription) {
+    const features = subscription?.features || this.tierFeatures.community;
+
+    // Get real usage data from StateManager if available
+    if (this.stateManager) {
+      const usage = this.stateManager.getCustomerUsage(customerId);
+
       return {
-        requests: { used: 0, limit: this.tierFeatures.community.maxRequests },
-        agents: { used: 0, limit: this.tierFeatures.community.maxAgents }
+        requests: {
+          used: usage.requests,
+          limit: features.maxRequests
+        },
+        agents: {
+          used: usage.agents,
+          limit: features.maxAgents
+        },
+        tokens: {
+          used: usage.tokens
+        },
+        cost: {
+          used: Math.round(usage.cost * 10000) / 10000  // 4 decimal places
+        },
+        period: {
+          start: usage.periodStart,
+          end: usage.periodEnd
+        }
       };
     }
-    
-    // In a real implementation, this would query actual usage from a database
-    // For now, we'll return mock data
+
+    // Fallback: return zeros if no StateManager configured
+    this.logger.warn('StateManager not configured, returning zero usage', { customerId });
     return {
-      requests: { 
-        used: Math.floor(Math.random() * subscription.features.maxRequests), 
-        limit: subscription.features.maxRequests 
-      },
-      agents: { 
-        used: Math.floor(Math.random() * subscription.features.maxAgents), 
-        limit: subscription.features.maxAgents 
-      }
+      requests: { used: 0, limit: features.maxRequests },
+      agents: { used: 0, limit: features.maxAgents }
     };
   }
 
