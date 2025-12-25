@@ -23,9 +23,20 @@ export class MCPToolRegistry {
   private resources: Map<string, RegisteredResource> = new Map();
   private prompts: Map<string, RegisteredPrompt> = new Map();
   private logger: Logger;
+  private readonly MAX_LATENCY_SAMPLES = 100; // Keep last 100 latencies for percentile calc
 
   constructor(logger?: Logger) {
     this.logger = logger || new Logger("info");
+  }
+
+  /**
+   * Calculate percentile from latency array
+   */
+  private calculatePercentile(latencies: number[], percentile: number): number {
+    if (latencies.length === 0) return 0;
+    const sorted = [...latencies].sort((a, b) => a - b);
+    const index = Math.ceil((percentile / 100) * sorted.length) - 1;
+    return sorted[Math.max(0, index)] || 0;
   }
 
   /**
@@ -329,6 +340,7 @@ export class MCPToolRegistry {
     metrics: {
       latency?: number;
       success?: boolean;
+      error?: string;
     }
   ): void {
     const tool = this.tools.get(toolId);
@@ -338,23 +350,35 @@ export class MCPToolRegistry {
     tool.lastUsed = new Date();
 
     if (metrics.latency !== undefined) {
-      // Simple moving average for latency
-      if (tool.latencyP50 === undefined) {
-        tool.latencyP50 = metrics.latency;
-        tool.latencyP95 = metrics.latency;
-      } else {
-        tool.latencyP50 = tool.latencyP50 * 0.9 + metrics.latency * 0.1;
-        tool.latencyP95 = Math.max(tool.latencyP95 || 0, metrics.latency);
+      // Initialize latencies array if needed
+      if (!tool.latencies) {
+        tool.latencies = [];
       }
+
+      // Add to rolling window
+      tool.latencies.push(metrics.latency);
+      if (tool.latencies.length > this.MAX_LATENCY_SAMPLES) {
+        tool.latencies.shift();
+      }
+
+      // Calculate real percentiles from the samples
+      tool.latencyP50 = this.calculatePercentile(tool.latencies, 50);
+      tool.latencyP95 = this.calculatePercentile(tool.latencies, 95);
+      tool.latencyP99 = this.calculatePercentile(tool.latencies, 99);
     }
 
     if (metrics.success !== undefined) {
-      // Track success rate
-      const totalCalls = tool.callCount;
-      const currentSuccessRate = tool.successRate || 1;
-      const successValue = metrics.success ? 1 : 0;
-      tool.successRate =
-        (currentSuccessRate * (totalCalls - 1) + successValue) / totalCalls;
+      // Track success rate and error count
+      if (!metrics.success) {
+        tool.errorCount = (tool.errorCount || 0) + 1;
+        if (metrics.error) {
+          tool.lastError = metrics.error;
+          tool.lastErrorTime = new Date();
+        }
+      }
+
+      // Calculate success rate from counts
+      tool.successRate = 1 - (tool.errorCount || 0) / tool.callCount;
     }
   }
 

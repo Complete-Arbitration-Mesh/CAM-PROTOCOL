@@ -23,7 +23,11 @@ import type {
   RegisteredTool,
   RegisteredResource,
   RegisteredPrompt,
+  MCPProtocolVersion,
 } from "./types.js";
+
+/** Default MCP protocol version */
+const DEFAULT_PROTOCOL_VERSION: MCPProtocolVersion = "2025-11-25";
 
 export class MCPClient {
   private client: Client;
@@ -51,9 +55,11 @@ export class MCPClient {
       return;
     }
 
+    const protocolVersion = this.config.protocolVersion || DEFAULT_PROTOCOL_VERSION;
     this.logger.info(`Connecting to MCP server: ${this.config.name}`, {
       transport: this.config.transport,
       serverId: this.config.id,
+      protocolVersion,
     });
 
     try {

@@ -1,94 +1,215 @@
-# MCP Gateway Demo
+# CAM MCP Gateway Example
 
-Demonstrates CAM as a governance layer above MCP servers.
+This example demonstrates the CAM MCP Gateway - a policy enforcement and routing layer for Model Context Protocol (MCP) servers.
 
-## What This Demo Shows
+## What's Included
 
-1. **Two MCP servers** with overlapping tools ("search")
-2. **CAM Gateway** selects server based on:
-   - Trust tier (trusted > standard > untrusted)
-   - Cost estimate (lower is better)
-   - Latency metrics (faster is better)
-   - Policy rules (can deny based on data classification)
-3. **Audit record** produced for every decision
+| File | Description |
+|------|-------------|
+| `demo.ts` | Simple demo showing routing, policy enforcement, and audit logging |
+| `gateway-server.ts` | Full HTTP server exposing the gateway as an API |
+| `e2e-test.ts` | E2E test demonstrating cheap/fast routing and policy denial |
+| `servers/fast-server.ts` | Toy MCP server simulating fast/expensive operations |
+| `servers/cheap-server.ts` | Toy MCP server simulating slow/cheap operations |
+| `docker-compose.yml` | Complete stack with Jaeger tracing and Grafana dashboards |
+| `config/` | Configuration for Prometheus and Grafana |
 
-## Run the Demo
+## Quick Start
+
+### Option 1: Run the E2E Test
+
+Demonstrates three routing scenarios:
+1. **Cheap route** - Cost optimization selects budget server
+2. **Fast route** - Preference selects premium server
+3. **Policy deny** - Admin tools blocked by policy
 
 ```bash
-# From repo root
+# From the repository root
 npm run build
-npx ts-node examples/mcp-gateway/demo.ts
-
-# Or with Node directly
-node --loader ts-node/esm examples/mcp-gateway/demo.ts
+npm run test:mcp:demo
 ```
 
-## Expected Output
+Expected output shows trace IDs, server selection, and audit verification.
 
+### Option 2: Run with Vitest
+
+```bash
+npm run test:mcp
 ```
-=== CAM MCP Gateway Demo ===
 
-Initializing gateway with 2 MCP servers...
-  - server-a: filesystem (trusted)
-  - server-b: websearch (standard)
+### Option 3: Run with Docker
 
-Registering tools...
-  - server-a:search (trusted, cost: 0.001)
-  - server-b:search (standard, cost: 0.002)
+```bash
+cd examples/mcp-gateway
 
---- Test 1: Basic Routing ---
-Request: search for "quarterly report"
-Decision: server-a:search selected
-Reason: Higher trust tier + lower cost
-Trace ID: abc-123-...
+# Start the full stack
+docker-compose up -d
 
---- Test 2: Policy Enforcement ---
-Request: search with PII data classification
-Decision: DENIED
-Reason: Policy 'no-pii-external' blocked request
-Trace ID: def-456-...
+# View logs
+docker-compose logs -f gateway
 
---- Test 3: Preferred Server ---
-Request: search with preferred server = server-b
-Decision: server-b:search selected
-Reason: User preference honored (within policy)
-Trace ID: ghi-789-...
-
-Audit Log (3 records):
-  [abc-123] tool_call -> server-a:search (success)
-  [def-456] tool_call -> DENIED (policy)
-  [ghi-789] tool_call -> server-b:search (success)
+# Access services:
+#   Gateway API: http://localhost:8080
+#   Jaeger UI:   http://localhost:16686
+#   Grafana:     http://localhost:3000
 ```
+
+## API Endpoints
+
+The gateway-server exposes these endpoints:
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Health check |
+| `/tools` | GET | List available tools |
+| `/call` | POST | Call a tool |
+| `/audit` | GET | Get audit log |
+| `/stats` | GET | Gateway statistics |
+| `/policies` | GET | List policies |
+
+### Example: Call a Tool
+
+```bash
+curl -X POST http://localhost:8080/call \
+  -H "Content-Type: application/json" \
+  -H "X-Tenant-ID: my-tenant" \
+  -d '{
+    "toolName": "search",
+    "arguments": {"query": "test"},
+    "tenantId": "my-tenant"
+  }'
+```
+
+### Example: View Audit Log
+
+```bash
+curl "http://localhost:8080/audit?tenantId=my-tenant&limit=10"
+```
+
+## Toy MCP Servers
+
+Two toy servers demonstrate routing scenarios:
+
+### Fast Server (`servers/fast-server.ts`)
+- Simulated latency: 10-50ms
+- Cost per call: $0.05
+- Trust tier: Trusted
+- Tools: `search`, `calculate`, `admin_reset`
+
+### Cheap Server (`servers/cheap-server.ts`)
+- Simulated latency: 200-500ms
+- Cost per call: $0.001
+- Trust tier: Standard
+- Tools: `search`, `calculate`, `weather`
+
+Both expose overlapping tools (`search`, `calculate`) to demonstrate routing.
+
+## Routing Behavior
+
+CAM selects the best tool based on scoring:
+
+1. **Trust tier bonus**: Privileged > Trusted > Standard > Untrusted
+2. **Cost penalty**: Lower cost = higher score
+3. **Latency penalty**: Lower latency = higher score
+4. **Preferred server bonus**: +25 points if matching
+
+### Routing by Cost
+
+Set `maxCost` to filter expensive tools:
+
+```typescript
+const result = await gateway.callTool({
+  toolName: 'search',
+  arguments: { query: 'test' },
+  tenantId: 'customer',
+  context: {
+    maxCost: 0.01,  // Only tools under $0.01
+  },
+});
+// → Routes to cheap-server
+```
+
+### Routing by Preference
+
+Set `preferredServer` to favor a specific server:
+
+```typescript
+const result = await gateway.callTool({
+  toolName: 'search',
+  arguments: { query: 'test' },
+  tenantId: 'customer',
+  context: {
+    preferredServer: 'fast',
+  },
+});
+// → Routes to fast-server
+```
+
+## Policy Configuration
+
+The example includes a policy blocking admin tools:
+
+```typescript
+{
+  id: 'block-admin-tools',
+  name: 'Block Administrative Tools',
+  priority: 100,
+  enabled: true,
+  conditions: [
+    { field: 'tool.name', operator: 'matches', value: '^admin_' },
+  ],
+  actions: ['deny'],
+}
+```
+
+See [Policy Templates](../../docs/guides/policy-templates.md) for more examples.
+
+## Audit Output
+
+With `audit.outputPath` configured, each call writes to a JSONL file:
+
+```jsonl
+{"traceId":"abc-123","tenantId":"customer","action":"tool_call","request":{"toolName":"search"},"decision":{"allowed":true,"selectedTool":{"id":"cheap:search"}},"result":{"success":true,"latencyMs":250}}
+```
+
+## Observability
+
+### Jaeger Tracing
+
+With OTel enabled, all tool calls are traced. View traces at `http://localhost:16686`:
+
+1. Select "cam-mcp-gateway" from the Service dropdown
+2. Click "Find Traces"
+3. Click on a trace to see the full span tree
+
+### Grafana Dashboards
+
+Access Grafana at `http://localhost:3000` (no login required):
+
+- Pre-configured with Prometheus and Jaeger datasources
+- Create dashboards to visualize request rates, latencies, errors
 
 ## How It Works
 
 ```
-┌─────────────────────────────────────────────┐
-│              CAM MCP Gateway                │
-│                                             │
-│  1. Receive tool call request               │
-│  2. Find matching tools across servers      │
-│  3. Apply policies (deny/allow)             │
-│  4. Score remaining tools                   │
-│  5. Select best tool                        │
-│  6. Execute via MCP client                  │
-│  7. Record audit log                        │
-│  8. Return result with trace ID             │
-└─────────────────────────────────────────────┘
+Request → Rate Limit Check → Find Matching Tools → Apply Policies
+                                     ↓
+                              Score & Select Best Tool
+                                     ↓
+                              Execute via MCP Client
+                                     ↓
+                              Record Audit → Return Result
 ```
 
-## Configuration
+## Cleanup
 
-See `demo.ts` for the full configuration including:
+```bash
+docker-compose down -v
+```
 
-- Server definitions (transport, trust tier, cost)
-- Policies (conditions, actions)
-- Rate limits
-- Audit settings
+## See Also
 
-## Next Steps
-
-- Add real MCP servers (replace mock clients)
-- Export audit logs to your SIEM
-- Add OpenTelemetry spans for distributed tracing
-- Configure custom policies for your org
+- [How CAM Complements MCP](../../docs/mcp/COMPLEMENTARY.md) - Philosophy and use cases
+- [MCP Gateway v0.1 Documentation](../../docs/mcp/MCP-GATEWAY-v0.1.md) - Technical reference
+- [OpenTelemetry Guide](../../docs/guides/mcp-opentelemetry.md) - Tracing setup
+- [Policy Templates](../../docs/guides/policy-templates.md) - Example policies

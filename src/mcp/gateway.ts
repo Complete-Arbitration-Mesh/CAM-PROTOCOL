@@ -6,15 +6,20 @@
  */
 
 import { randomUUID } from "crypto";
+import { appendFileSync, existsSync, mkdirSync } from "fs";
+import { dirname } from "path";
 import { Logger } from "../shared/logger.js";
 import { MCPToolRegistry } from "./tool-registry.js";
 import { RateLimiter } from "../routing/rate-limiter.js";
+import { MCPOTelInstrumentation, createNoOpInstrumentation } from "./otel-instrumentation.js";
+import type { Span } from "@opentelemetry/api";
 import type {
   MCPGatewayConfig,
   MCPPolicy,
   ToolCallRequest,
   ArbitrationDecision,
   ToolCallResult,
+  ToolCallStreamEvent,
   AuditRecord,
   PolicyAction,
   RegisteredTool,
@@ -24,6 +29,7 @@ import type {
 export class MCPGateway {
   private registry: MCPToolRegistry;
   private rateLimiter: RateLimiter;
+  private otel: MCPOTelInstrumentation;
   private policies: Map<string, MCPPolicy> = new Map();
   private auditLog: AuditRecord[] = [];
   private config: MCPGatewayConfig;
@@ -38,6 +44,18 @@ export class MCPGateway {
       enabled: config.rateLimit.enabled,
       requestsPerMinute: config.rateLimit.requestsPerMinute,
     });
+
+    // Initialize OpenTelemetry instrumentation
+    if (config.otel?.enabled) {
+      this.otel = new MCPOTelInstrumentation({
+        enabled: true,
+        serviceName: config.otel.serviceName || "cam-mcp-gateway",
+        serviceVersion: config.otel.serviceVersion || "2.1.0",
+        exporterUrl: config.otel.exporterUrl,
+      });
+    } else {
+      this.otel = createNoOpInstrumentation();
+    }
 
     // Load policies
     for (const policy of config.policies) {
@@ -82,6 +100,13 @@ export class MCPGateway {
     const startTime = Date.now();
     const policyActions: PolicyAction[] = [];
 
+    // Start OTel span for this tool call
+    const span: Span = this.otel.startToolCallSpan(
+      request.toolName,
+      request.tenantId,
+      request.userId
+    );
+
     this.logger.debug("Tool call request", { traceId, toolName: request.toolName });
 
     // Rate limit check
@@ -89,7 +114,9 @@ export class MCPGateway {
       const rateLimitResult = this.rateLimiter.checkLimit(request.tenantId);
       if (!rateLimitResult.allowed) {
         this.emitEvent({ type: "rate_limited", tenantId: request.tenantId, limit: rateLimitResult.limit });
-        return this.createErrorResult(traceId, startTime, "Rate limit exceeded", policyActions);
+        const result = this.createErrorResult(traceId, startTime, "Rate limit exceeded", policyActions);
+        this.otel.recordToolCallResult(span, result);
+        return result;
       }
     }
 
@@ -128,7 +155,9 @@ export class MCPGateway {
         reason: decision.reason,
       });
 
-      return this.createErrorResult(traceId, startTime, decision.reason, policyActions);
+      const result = this.createErrorResult(traceId, startTime, decision.reason, policyActions);
+      this.otel.recordToolCallResult(span, result);
+      return result;
     }
 
     // Execute the tool call
@@ -169,6 +198,8 @@ export class MCPGateway {
         success: true,
       });
 
+      // Record successful result to OTel span
+      this.otel.recordToolCallResult(span, toolResult);
       return toolResult;
     } catch (error) {
       const latencyMs = Date.now() - startTime;
@@ -189,7 +220,130 @@ export class MCPGateway {
         success: false,
       });
 
-      return this.createErrorResult(traceId, startTime, errorMessage, policyActions, decision.selectedTool);
+      const result = this.createErrorResult(traceId, startTime, errorMessage, policyActions, decision.selectedTool);
+      this.otel.recordToolCallResult(span, result);
+      return result;
+    }
+  }
+
+  /**
+   * Call a tool with streaming progress events
+   * Returns an async generator that yields progress events during execution
+   */
+  async *callToolStreaming(request: ToolCallRequest): AsyncGenerator<ToolCallStreamEvent> {
+    const traceId = randomUUID();
+    const startTime = Date.now();
+    const policyActions: PolicyAction[] = [];
+
+    // Emit started event
+    yield {
+      type: "started",
+      traceId,
+      toolName: request.toolName,
+      timestamp: new Date(),
+    };
+
+    // Rate limit check
+    if (this.config.rateLimit.enabled) {
+      const rateLimitResult = this.rateLimiter.checkLimit(request.tenantId);
+      if (!rateLimitResult.allowed) {
+        this.emitEvent({ type: "rate_limited", tenantId: request.tenantId, limit: rateLimitResult.limit });
+        yield { type: "error", traceId, error: "Rate limit exceeded" };
+        return;
+      }
+    }
+
+    // Emit arbitrating event
+    const findCriteria: Parameters<MCPToolRegistry["findTools"]>[0] = {
+      name: request.toolName,
+    };
+    const candidates = this.registry.findTools(findCriteria);
+    yield { type: "arbitrating", traceId, candidateCount: candidates.length };
+
+    // Arbitrate
+    const decision = await this.arbitrate(request, traceId);
+
+    // Emit policy events
+    for (const policyRef of decision.policyReferences) {
+      yield {
+        type: "policy_evaluated",
+        traceId,
+        policyId: policyRef,
+        allowed: decision.allowed,
+      };
+    }
+
+    if (!decision.allowed || !decision.selectedTool) {
+      yield { type: "error", traceId, error: decision.reason };
+      return;
+    }
+
+    // Emit tool selected event
+    yield {
+      type: "tool_selected",
+      traceId,
+      toolId: decision.selectedTool.id,
+      serverId: decision.selectedTool.serverId,
+    };
+
+    // Emit executing event
+    yield {
+      type: "executing",
+      traceId,
+      toolId: decision.selectedTool.id,
+    };
+
+    // Execute the tool call
+    try {
+      const client = this.registry.getClient(decision.selectedTool.serverId);
+      if (!client) {
+        yield { type: "error", traceId, error: `Server not connected: ${decision.selectedTool.serverId}` };
+        return;
+      }
+
+      const result = await client.callTool(decision.selectedTool.tool.name, request.arguments);
+      const latencyMs = Date.now() - startTime;
+
+      // Update metrics
+      this.registry.updateToolMetrics(decision.selectedTool.id, {
+        latency: latencyMs,
+        success: true,
+      });
+
+      const toolResult: ToolCallResult = {
+        traceId,
+        success: true,
+        result: this.config.audit.includeResults ? result : undefined,
+        serverId: decision.selectedTool.serverId,
+        toolId: decision.selectedTool.id,
+        latencyMs,
+        cost: decision.estimatedCost || 0,
+        policyActions,
+        timestamp: new Date(),
+      };
+
+      // Record audit
+      const auditRecord: AuditRecord = {
+        traceId,
+        timestamp: new Date(),
+        tenantId: request.tenantId,
+        userId: request.userId,
+        action: "tool_call",
+        request: {
+          toolName: request.toolName,
+          arguments: this.config.audit.includeArguments ? request.arguments : undefined,
+        },
+        decision,
+        policyActions,
+        result: toolResult,
+      };
+      this.recordAudit(auditRecord);
+
+      // Emit completed event
+      yield { type: "completed", traceId, result: toolResult };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      yield { type: "error", traceId, error: errorMessage };
     }
   }
 
@@ -450,12 +604,81 @@ export class MCPGateway {
 
     this.auditLog.push(record);
 
-    // Trim old entries
+    // Export to OpenTelemetry as a span
+    this.otel.recordAuditAsSpan(record);
+
+    // Write to JSONL file if configured
+    if (this.config.audit.outputPath) {
+      this.writeAuditToFile(record);
+    }
+
+    // Log to stdout as JSON for observability
+    this.logger.info("AUDIT", {
+      traceId: record.traceId,
+      tenantId: record.tenantId,
+      action: record.action,
+      toolName: record.request.toolName,
+      allowed: record.decision.allowed,
+      selectedTool: record.decision.selectedTool?.id,
+      reason: record.decision.reason,
+      latencyMs: record.result?.latencyMs,
+    });
+
+    // Trim old entries from memory
     const maxAge = this.config.audit.retentionDays * 24 * 60 * 60 * 1000;
     const cutoff = Date.now() - maxAge;
     this.auditLog = this.auditLog.filter((r) => r.timestamp.getTime() > cutoff);
+  }
 
-    this.logger.debug("Audit recorded", { traceId: record.traceId });
+  /**
+   * Write audit record to JSONL file
+   */
+  private writeAuditToFile(record: AuditRecord): void {
+    const outputPath = this.config.audit.outputPath;
+    if (!outputPath) return;
+
+    try {
+      // Ensure directory exists
+      const dir = dirname(outputPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+
+      // Serialize with safe date handling
+      const jsonLine = JSON.stringify({
+        ...record,
+        timestamp: record.timestamp.toISOString(),
+        decision: {
+          ...record.decision,
+          selectedTool: record.decision.selectedTool
+            ? {
+                id: record.decision.selectedTool.id,
+                serverId: record.decision.selectedTool.serverId,
+                toolName: record.decision.selectedTool.tool.name,
+                trustTier: record.decision.selectedTool.trustTier,
+                costEstimate: record.decision.selectedTool.costEstimate,
+              }
+            : undefined,
+        },
+        result: record.result
+          ? {
+              ...record.result,
+              timestamp: record.result.timestamp.toISOString(),
+            }
+          : undefined,
+        policyActions: record.policyActions.map((a) => ({
+          ...a,
+          timestamp: a.timestamp.toISOString(),
+        })),
+      });
+
+      appendFileSync(outputPath, jsonLine + "\n", "utf-8");
+    } catch (error) {
+      this.logger.error("Failed to write audit to file", {
+        error: error instanceof Error ? error.message : String(error),
+        path: outputPath,
+      });
+    }
   }
 
   /**
@@ -519,6 +742,9 @@ export class MCPGateway {
    * Emit event to all handlers
    */
   private emitEvent(event: MCPGatewayEvent): void {
+    // Record event as OTel span
+    this.otel.recordGatewayEvent(event);
+
     for (const handler of this.eventHandlers) {
       try {
         handler(event);
@@ -558,8 +784,16 @@ export class MCPGateway {
    * Shutdown the gateway
    */
   async shutdown(): Promise<void> {
+    await this.otel.shutdown();
     await this.registry.shutdown();
     this.rateLimiter.shutdown();
     this.logger.info("MCP Gateway shutdown complete");
+  }
+
+  /**
+   * Get the OTel tracer for custom instrumentation
+   */
+  getTracer() {
+    return this.otel.getTracer();
   }
 }

@@ -23,8 +23,8 @@ This quickstart example provides a complete environment for testing and explorin
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/cam-protocol/complete-arbitration-mesh.git
-   cd complete-arbitration-mesh/examples/quickstart
+   git clone https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL.git
+   cd CAM-PROTOCOL/examples/quickstart
    ```
 
 2. Start the environment:
