@@ -11,6 +11,13 @@ import type { Tool, Resource, Prompt } from "@modelcontextprotocol/sdk/types.js"
 // MCP Server Configuration
 // =========================================================================
 
+/**
+ * Supported MCP protocol versions
+ * - 2025-11-25: Latest stable (default)
+ * - 2025-06-18: Previous stable
+ */
+export type MCPProtocolVersion = "2025-11-25" | "2025-06-18";
+
 export interface MCPServerConfig {
   id: string;
   name: string;
@@ -23,6 +30,7 @@ export interface MCPServerConfig {
   dataClassifications?: DataClassification[];
   costPerCall?: number; // Estimated cost per tool invocation
   timeout?: number; // Connection timeout in ms
+  protocolVersion?: MCPProtocolVersion; // MCP protocol version (default: 2025-11-25)
   enabled: boolean;
 }
 
@@ -47,9 +55,14 @@ export interface RegisteredTool {
   costEstimate: number;
   latencyP50?: number;
   latencyP95?: number;
+  latencyP99?: number;
+  latencies?: number[]; // Rolling window of recent latencies for percentile calculation
   successRate?: number;
+  errorCount?: number;
   callCount: number;
   lastUsed?: Date;
+  lastError?: string;
+  lastErrorTime?: Date;
   tags: string[];
 }
 
@@ -129,6 +142,18 @@ export interface ToolCallResult {
   timestamp: Date;
 }
 
+/**
+ * Streaming tool call progress events
+ */
+export type ToolCallStreamEvent =
+  | { type: "started"; traceId: string; toolName: string; timestamp: Date }
+  | { type: "arbitrating"; traceId: string; candidateCount: number }
+  | { type: "policy_evaluated"; traceId: string; policyId: string; allowed: boolean }
+  | { type: "tool_selected"; traceId: string; toolId: string; serverId: string }
+  | { type: "executing"; traceId: string; toolId: string }
+  | { type: "completed"; traceId: string; result: ToolCallResult }
+  | { type: "error"; traceId: string; error: string };
+
 // =========================================================================
 // Policies
 // =========================================================================
@@ -199,17 +224,25 @@ export interface MCPGatewayConfig {
     maxRetries: number;
     retryDelayMs: number;
     defaultTrustTier: "untrusted" | "standard" | "trusted" | "privileged";
+    protocolVersion: MCPProtocolVersion; // Default MCP protocol version
   };
   audit: {
     enabled: boolean;
     retentionDays: number;
     includeArguments: boolean;
     includeResults: boolean;
+    outputPath?: string; // Path for JSONL audit file (optional)
   };
   rateLimit: {
     enabled: boolean;
     requestsPerMinute: number;
     requestsPerMinuteByTenant?: Record<string, number>;
+  };
+  otel?: {
+    enabled: boolean;
+    serviceName?: string;
+    serviceVersion?: string;
+    exporterUrl?: string;
   };
 }
 

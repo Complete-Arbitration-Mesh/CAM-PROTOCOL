@@ -1,11 +1,175 @@
 # Complete Arbitration Mesh - CI/CD Changelog
 
+## Version 2.1.1 - Trust Patch Release
+**Release Date**: 2025-12-25
+**Build**: Production Ready
+**Status**: Patch Release (v2.1.1)
+
+This patch release focuses on documentation trust, licensing clarity, and MCP Gateway scaffolding.
+
+---
+
+### 🛡️ TRUST & DOCUMENTATION FIXES
+
+#### 1. **Clone URL Corrections**
+Fixed all GitHub clone URLs to use correct repository path:
+```diff
+- git clone https://github.com/cam-protocol/complete-arbitration-mesh.git
++ git clone https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL.git
+```
+
+#### 2. **Security Status Clarity**
+Resolved contradictory security claims:
+- Updated `docs/security/SECURITY_CHECKLIST.md` with honest status
+- Core security controls: Complete ✅
+- Enterprise features (FIPS, FedRAMP): Roadmap items
+
+#### 3. **Licensing Clarity**
+- Added SPDX identifier (`LicenseRef-CAM-Attribution`) to LICENSE files
+- Updated `LICENSES.md` with OSS dependency attribution table
+- Explained GitHub "Unknown license" display in README
+
+#### 4. **Benchmark Methodology**
+New documentation: `docs/benchmarks/methodology.md`
+- Environment assumptions and configuration
+- Metrics computation formulas
+- Disclaimers about mock vs production benchmarks
+
+---
+
+### 🔌 MCP GATEWAY v0.1 SCAFFOLD
+
+#### 1. **"How CAM Complements MCP" Documentation**
+New file: `docs/mcp/COMPLEMENTARY.md`
+- Philosophy: CAM = governance layer above MCP
+- Use case examples (multi-tenant, cost optimization, compliance)
+- Integration patterns
+
+#### 2. **Toy MCP Servers**
+Two demonstration servers for E2E testing:
+- `examples/mcp-gateway/servers/fast-server.ts` - Fast/expensive ($0.05/call)
+- `examples/mcp-gateway/servers/cheap-server.ts` - Slow/cheap ($0.001/call)
+
+#### 3. **E2E Smoke Test**
+`examples/mcp-gateway/e2e-test.ts` demonstrates:
+1. Cheap route selection (cost optimization)
+2. Fast route selection (latency preference)
+3. Policy denial (admin tools blocked)
+4. Audit JSONL verification
+
+#### 4. **CI Integration**
+`.github/workflows/ci.yml` now includes:
+- MCP Gateway E2E test job
+- Audit JSONL output verification
+
+---
+
+### 📦 FILES CHANGED
+
+**New Files:**
+- `docs/mcp/COMPLEMENTARY.md`
+- `docs/benchmarks/methodology.md`
+- `examples/mcp-gateway/servers/fast-server.ts`
+- `examples/mcp-gateway/servers/cheap-server.ts`
+- `examples/mcp-gateway/e2e-test.ts`
+- `tests/mcp/mcp-gateway-e2e.test.ts`
+
+**Updated Files:**
+- `README.md` - License clarity, MCP section
+- `LICENSES.md` - OSS dependency table, SPDX info
+- `LICENSE` - Added SPDX-License-Identifier header
+- `LICENSE-ENTERPRISE` - Added SPDX-License-Identifier header
+- `docs/security/SECURITY_CHECKLIST.md` - Honest status
+- `examples/mcp-gateway/README.md` - Documentation links
+- `docs/mcp/MCP-GATEWAY-v0.1.md` - Documentation links
+- `.github/workflows/ci.yml` - MCP E2E job
+
+---
+
 ## Version 2.1.0 - Production Hardening Release
 **Release Date**: 2025-12-25
 **Build**: Production Ready
 **Status**: Production Release (v2.1.0)
 
 This release focuses on production hardening with official SDK integrations, response caching, rate limiting, and streaming support.
+
+---
+
+### 🌐 MCP GATEWAY ENHANCEMENTS
+
+#### 1. **OpenTelemetry Integration**
+Full distributed tracing for MCP tool calls with OTLP HTTP export:
+- Automatic span creation for tool arbitration and execution
+- Trace context propagation across MCP servers
+- Integration with Jaeger and Grafana Tempo
+- Policy evaluation visibility in traces
+
+**Documentation:**
+- `docs/guides/mcp-opentelemetry.md` - Complete OTel setup guide
+
+#### 2. **Streaming Tool Calls**
+New async generator for real-time tool call progress:
+```typescript
+const gateway = new MCPGateway(config);
+for await (const event of gateway.callToolStreaming(request)) {
+  switch (event.type) {
+    case "started": console.log("Tool call started");
+    case "policy_evaluated": console.log(`Policy ${event.policyId}: ${event.allowed}`);
+    case "completed": console.log("Result:", event.result);
+  }
+}
+```
+
+**Implementation:**
+- `src/mcp/gateway.ts` - `callToolStreaming()` method
+- `src/mcp/types.ts` - `ToolCallStreamEvent` union type
+
+#### 3. **Real Latency Percentiles**
+Replaced exponential moving average with proper percentile calculation:
+- Rolling window of last 100 latency samples
+- Accurate p50, p95, p99 calculations
+- Error count and rate tracking
+- Last error message storage
+
+**Implementation:**
+- `src/mcp/tool-registry.ts` - `calculatePercentile()` method
+
+#### 4. **Docker Quickstart Stack**
+Complete observability stack with Docker Compose:
+```bash
+cd examples/mcp-gateway
+docker-compose up -d
+# Gateway: http://localhost:8080
+# Jaeger:  http://localhost:16686
+# Grafana: http://localhost:3000
+```
+
+**New Files:**
+- `examples/mcp-gateway/docker-compose.yml`
+- `examples/mcp-gateway/gateway-server.ts`
+- `examples/mcp-gateway/config/prometheus.yml`
+- `examples/mcp-gateway/config/grafana/provisioning/datasources/datasources.yml`
+
+#### 5. **Policy Templates Documentation**
+Pre-built policies for common governance scenarios:
+- Data protection (PII, PHI, confidential data)
+- Cost control (tier-based limits)
+- Access control (user ID requirements, admin tools)
+- Trust tier enforcement
+- Audit and compliance logging
+
+**Documentation:**
+- `docs/guides/policy-templates.md`
+
+---
+
+### 📦 NEW NPM SCRIPTS
+
+| Script | Description |
+|--------|-------------|
+| `npm run test:mcp` | Run MCP-specific tests |
+| `npm run demo:mcp-gateway` | Run MCP gateway demo |
+| `npm run mcp:gateway` | Start MCP gateway HTTP server |
 
 ---
 
@@ -72,7 +236,8 @@ Sliding window rate limiting (`src/routing/rate-limiter.ts`):
 Added comprehensive test coverage:
 - **Rate Limiter Tests** (22 tests) - `tests/routing/rate-limiter.test.ts`
 - **Cache Manager Tests** (28 tests) - `tests/routing/cache-manager.test.ts`
-- **Total**: 124 tests passing
+- **MCP Integration Tests** (19 tests) - `tests/mcp/mcp-integration.test.ts`
+- **Total**: 174 tests passing
 - **Lint**: 0 errors
 
 ---
@@ -100,6 +265,19 @@ src/routing/
 tests/routing/
 ├── cache-manager.test.ts # Cache manager tests
 └── rate-limiter.test.ts  # Rate limiter tests
+
+tests/mcp/
+└── mcp-integration.test.ts # MCP gateway integration tests
+
+docs/guides/
+├── mcp-opentelemetry.md  # OTel setup with Jaeger/Grafana
+└── policy-templates.md   # Pre-built policy templates
+
+examples/mcp-gateway/
+├── demo.ts               # Simple gateway demo
+├── gateway-server.ts     # HTTP server exposing gateway API
+├── docker-compose.yml    # Full observability stack
+└── config/               # Prometheus/Grafana configuration
 ```
 
 ---

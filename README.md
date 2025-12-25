@@ -5,7 +5,7 @@
   <h3>Complete Arbitration Mesh (CAM) Protocol</h3>
 
   [![License: Contact Andrew "Dru" Edwards](https://img.shields.io/badge/license-Contact%20Andrew%20%22Dru%22%20Edwards-critical)](LICENSE)
-  [![Version](https://img.shields.io/badge/Version-2.1.0-brightgreen.svg)](docs/RELEASE_NOTES.md)
+  [![Version](https://img.shields.io/badge/Version-2.1.1-brightgreen.svg)](docs/RELEASE_NOTES.md)
   [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](CHANGELOG.md)
   [![Compliance](https://img.shields.io/badge/Compliance-GDPR%20|%20CCPA-green.svg)](docs/legal/COMPLIANCE_CHECKLIST.md)
   [![Build Status](https://img.shields.io/github/workflow/status/Complete-Arbitration-Mesh/CAM-PROTOCOL/Continuous%20Integration?branch=main)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
@@ -366,17 +366,19 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 **CAM Protocol is proprietary software.** All usage requires written permission.
 
+> **Note:** GitHub may show "Unknown license" because CAM uses a custom proprietary license (`LicenseRef-CAM-Attribution`), not a standard open-source license. This is intentional.
+
 | Use Case | License | Requirements |
 |----------|---------|--------------|
 | Evaluation | [CAM-Attribution](LICENSE) | Written permission + attribution |
 | Internal/Commercial | [LICENSE-ENTERPRISE](LICENSE-ENTERPRISE) | Signed agreement + attribution |
-| Open Source Dependencies | Various (MIT, Apache-2.0) | See `package.json` |
+| Open Source Dependencies | Various (MIT, Apache-2.0) | See [LICENSES.md](LICENSES.md) |
 
 **To request permission:** Email [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
 
 All approved use must credit: `Built by Andrew "Dru" Edwards`
 
-See [LICENSES.md](LICENSES.md) for full details.
+See [LICENSES.md](LICENSES.md) for complete licensing details and OSS dependency attributions.
 
 ## 🆘 Support
 
@@ -422,7 +424,9 @@ npm run demo:value
 # Output: failover timing + recovery metrics
 ```
 
-**Methodology:** Benchmarks run against mock providers in `tests/benchmarks/`. Results vary by provider latency, pricing, and workload. See [docs/PROOF_OF_VALUE.md](docs/PROOF_OF_VALUE.md) for environment assumptions.
+**Claims & Methodology:** Performance claims are based on controlled benchmarks using mock providers. Actual results vary significantly based on your provider latency, pricing, workload patterns, and configuration. Run the benchmarks in your environment for accurate measurements.
+
+See [docs/benchmarks/methodology.md](docs/benchmarks/methodology.md) for complete methodology including environment assumptions, scripts, and how metrics are computed.
 
 ## 🔒 Legal & Compliance
 
