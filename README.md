@@ -364,14 +364,19 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-CAM Protocol is distributed under the proprietary
-[CAM-Attribution License](LICENSE). You **must** obtain written permission
-from Andrew "Dru" Edwards before using, modifying, or distributing the
-software. All approved use must clearly credit Andrew "Dru" Edwards as the
-creator of the build. Commercial deployments also require a separate
-agreement—see [LICENSE-ENTERPRISE](LICENSE-ENTERPRISE) and the detailed
-[licensing documentation](LICENSES.md) for guidance on requesting
-authorization and meeting attribution requirements.
+**CAM Protocol is proprietary software.** All usage requires written permission.
+
+| Use Case | License | Requirements |
+|----------|---------|--------------|
+| Evaluation | [CAM-Attribution](LICENSE) | Written permission + attribution |
+| Internal/Commercial | [LICENSE-ENTERPRISE](LICENSE-ENTERPRISE) | Signed agreement + attribution |
+| Open Source Dependencies | Various (MIT, Apache-2.0) | See `package.json` |
+
+**To request permission:** Email [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
+
+All approved use must credit: `Built by Andrew "Dru" Edwards`
+
+See [LICENSES.md](LICENSES.md) for full details.
 
 ## 🆘 Support
 
