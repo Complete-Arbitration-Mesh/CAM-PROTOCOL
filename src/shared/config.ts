@@ -2,12 +2,12 @@
  * Configuration management for the Complete Arbitration Mesh
  */
 
-import type { LogLevel } from './logger';
+import type { LogLevel } from "./logger";
 
 export interface ConfigOptions {
   logLevel?: LogLevel;
   apiVersion?: string;
-  environment?: 'development' | 'staging' | 'production';
+  environment?: "development" | "staging" | "production";
   database?: DatabaseConfig;
   redis?: RedisConfig;
   providers?: ProviderConfig[];
@@ -61,7 +61,7 @@ export interface SecurityConfig {
 export class Config {
   public logLevel: LogLevel;
   public apiVersion: string;
-  public environment: 'development' | 'staging' | 'production';
+  public environment: "development" | "staging" | "production";
   public database: DatabaseConfig | undefined;
   public redis: RedisConfig | undefined;
   public providers: ProviderConfig[];
@@ -70,12 +70,13 @@ export class Config {
 
   constructor(options: ConfigOptions = {}) {
     this.logLevel = options.logLevel || this.getEnvLogLevel();
-    this.apiVersion = options.apiVersion || '2.0';
+    this.apiVersion = options.apiVersion || "2.0";
     this.environment = options.environment || this.getEnvironment();
     this.database = options.database;
     this.redis = options.redis;
     this.providers = options.providers || [];
-    this.collaboration = options.collaboration || this.getDefaultCollaborationConfig();
+    this.collaboration =
+      options.collaboration || this.getDefaultCollaborationConfig();
     this.security = options.security || this.getDefaultSecurityConfig();
   }
 
@@ -83,61 +84,76 @@ export class Config {
     if (options.logLevel) this.logLevel = options.logLevel;
     if (options.apiVersion) this.apiVersion = options.apiVersion;
     if (options.environment) this.environment = options.environment;
-    if (options.database) this.database = this.database ? { ...this.database, ...options.database } : options.database;
-    if (options.redis) this.redis = this.redis ? { ...this.redis, ...options.redis } : options.redis;
+    if (options.database)
+      this.database = this.database
+        ? { ...this.database, ...options.database }
+        : options.database;
+    if (options.redis)
+      this.redis = this.redis
+        ? { ...this.redis, ...options.redis }
+        : options.redis;
     if (options.providers) this.providers = options.providers;
-    if (options.collaboration) this.collaboration = { ...this.collaboration, ...options.collaboration };
-    if (options.security) this.security = { ...this.security, ...options.security };
+    if (options.collaboration)
+      this.collaboration = { ...this.collaboration, ...options.collaboration };
+    if (options.security)
+      this.security = { ...this.security, ...options.security };
   }
 
   private getEnvLogLevel(): LogLevel {
-    const level = process.env['LOG_LEVEL']?.toLowerCase();
-    if (level && ['debug', 'info', 'warn', 'error'].includes(level)) {
+    const level = process.env["LOG_LEVEL"]?.toLowerCase();
+    if (level && ["debug", "info", "warn", "error"].includes(level)) {
       return level as LogLevel;
     }
-    return 'info';
+    return "info";
   }
 
-  private getEnvironment(): 'development' | 'staging' | 'production' {
-    const env = process.env['NODE_ENV']?.toLowerCase();
-    if (env === 'development' || env === 'staging' || env === 'production') {
+  private getEnvironment(): "development" | "staging" | "production" {
+    const env = process.env["NODE_ENV"]?.toLowerCase();
+    if (env === "development" || env === "staging" || env === "production") {
       return env;
     }
-    return 'development';
+    return "development";
   }
 
   private getDefaultCollaborationConfig(): CollaborationConfig {
     return {
-      agentDiscoveryTimeout: parseInt(process.env['AGENT_DISCOVERY_TIMEOUT'] || '30000'),
-      maxConcurrentCollaborations: parseInt(process.env['MAX_CONCURRENT_COLLABORATIONS'] || '100'),
-      defaultTaskTimeout: parseInt(process.env['DEFAULT_TASK_TIMEOUT'] || '300000')
+      agentDiscoveryTimeout: parseInt(
+        process.env["AGENT_DISCOVERY_TIMEOUT"] || "30000",
+      ),
+      maxConcurrentCollaborations: parseInt(
+        process.env["MAX_CONCURRENT_COLLABORATIONS"] || "100",
+      ),
+      defaultTaskTimeout: parseInt(
+        process.env["DEFAULT_TASK_TIMEOUT"] || "300000",
+      ),
     };
   }
 
   private getDefaultSecurityConfig(): SecurityConfig {
     return {
-      jwtSecret: process.env['JWT_SECRET'] || 'your-secret-key-change-in-production',
-      jwtExpirationTime: process.env['JWT_EXPIRATION'] || '1h',
+      jwtSecret:
+        process.env["JWT_SECRET"] || "your-secret-key-change-in-production",
+      jwtExpirationTime: process.env["JWT_EXPIRATION"] || "1h",
       rateLimiting: {
-        enabled: process.env['RATE_LIMITING_ENABLED'] !== 'false',
-        requestsPerMinute: parseInt(process.env['RATE_LIMIT_RPM'] || '100')
+        enabled: process.env["RATE_LIMITING_ENABLED"] !== "false",
+        requestsPerMinute: parseInt(process.env["RATE_LIMIT_RPM"] || "100"),
       },
       cors: {
-        enabled: process.env['CORS_ENABLED'] !== 'false',
-        origins: process.env['CORS_ORIGINS']?.split(',') || ['*']
-      }
+        enabled: process.env["CORS_ENABLED"] !== "false",
+        origins: process.env["CORS_ORIGINS"]?.split(",") || ["*"],
+      },
     };
   }
 
   isDevelopment(): boolean {
-    return this.environment === 'development';
+    return this.environment === "development";
   }
 
   isProduction(): boolean {
-    return this.environment === 'production';
+    return this.environment === "production";
   }
 
   isStaging(): boolean {
-    return this.environment === 'staging';
+    return this.environment === "staging";
   }
 }

@@ -1,16 +1,16 @@
-import { Logger } from '../shared/logger.js';
-import { CAMError } from '../shared/errors.js';
-import { 
-  AuthToken, 
-  AuthRequest, 
-  AuthResponse, 
+import { Logger } from "../shared/logger.js";
+import { CAMError } from "../shared/errors.js";
+import {
+  AuthToken,
+  AuthRequest,
+  AuthResponse,
   TokenValidationResult,
   AuthConfig,
   UserInfo,
-  Permission
-} from '../shared/types.js';
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
+  Permission,
+} from "../shared/types.js";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 /**
  * Authentication Service for Complete Arbitration Mesh
@@ -25,11 +25,11 @@ export class AuthenticationService {
 
   constructor(config: AuthConfig) {
     this.jwtSecret = config.jwtSecret || this.generateSecret();
-    this.tokenExpiry = config.tokenExpiry || '24h';
-    this.logger = new Logger('info'); // Initialize with a valid LogLevel
-    
-    this.logger.info('Authentication Service initialized', {
-      tokenExpiry: this.tokenExpiry
+    this.tokenExpiry = config.tokenExpiry || "24h";
+    this.logger = new Logger("info"); // Initialize with a valid LogLevel
+
+    this.logger.info("Authentication Service initialized", {
+      tokenExpiry: this.tokenExpiry,
     });
   }
 
@@ -38,9 +38,9 @@ export class AuthenticationService {
    */
   async authenticate(request: AuthRequest): Promise<AuthResponse> {
     try {
-      this.logger.debug('Authentication attempt', { 
+      this.logger.debug("Authentication attempt", {
         clientId: request.clientId,
-        type: request.type 
+        type: request.type,
       });
 
       // Validate request
@@ -51,32 +51,37 @@ export class AuthenticationService {
       let permissions: Permission[];
 
       switch (request.type) {
-        case 'api_key':
+        case "api_key":
           ({ userInfo, permissions } = await this.authenticateApiKey(request));
           break;
-        case 'oauth':
+        case "oauth":
           ({ userInfo, permissions } = await this.authenticateOAuth(request));
           break;
-        case 'certificate':
-          ({ userInfo, permissions } = await this.authenticateCertificate(request));
+        case "certificate":
+          ({ userInfo, permissions } =
+            await this.authenticateCertificate(request));
           break;
-        case 'collaboration':
-          ({ userInfo, permissions } = await this.authenticateCollaboration(request));
+        case "collaboration":
+          ({ userInfo, permissions } =
+            await this.authenticateCollaboration(request));
           break;
         default:
-          throw new CAMError(`Unsupported authentication type: ${request.type}`, 'INVALID_AUTH_TYPE');
+          throw new CAMError(
+            `Unsupported authentication type: ${request.type}`,
+            "INVALID_AUTH_TYPE",
+          );
       }
 
       // Generate JWT token
       const token = this.generateToken(userInfo, permissions);
-      
+
       // Store active session
       this.activeSessions.set(token.id, token);
 
-      this.logger.info('Authentication successful', {
+      this.logger.info("Authentication successful", {
         userId: userInfo.id,
         clientId: request.clientId,
-        tokenId: token.id
+        tokenId: token.id,
       });
 
       return {
@@ -84,19 +89,18 @@ export class AuthenticationService {
         token,
         userInfo,
         permissions,
-        expiresAt: token.expiresAt
+        expiresAt: token.expiresAt,
       };
-
     } catch (error) {
-      this.logger.error('Authentication failed', { 
+      this.logger.error("Authentication failed", {
         clientId: request.clientId,
-        error: error instanceof Error ? error.message : error 
+        error: error instanceof Error ? error.message : error,
       });
-      
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Authentication failed',
-        errorCode: error instanceof CAMError ? error.code : 'AUTH_FAILED'
+        error: error instanceof Error ? error.message : "Authentication failed",
+        errorCode: error instanceof CAMError ? error.code : "AUTH_FAILED",
       };
     }
   }
@@ -110,21 +114,21 @@ export class AuthenticationService {
       if (this.revokedTokens.has(tokenString)) {
         return {
           valid: false,
-          error: 'Token has been revoked',
-          errorCode: 'TOKEN_REVOKED'
+          error: "Token has been revoked",
+          errorCode: "TOKEN_REVOKED",
         };
       }
 
       // Verify JWT
       const decoded = jwt.verify(tokenString, this.jwtSecret) as any;
-      
+
       // Check if session exists
       const session = this.activeSessions.get(decoded.jti);
       if (!session) {
         return {
           valid: false,
-          error: 'Session not found',
-          errorCode: 'SESSION_NOT_FOUND'
+          error: "Session not found",
+          errorCode: "SESSION_NOT_FOUND",
         };
       }
 
@@ -133,8 +137,8 @@ export class AuthenticationService {
         this.activeSessions.delete(decoded.jti);
         return {
           valid: false,
-          error: 'Token has expired',
-          errorCode: 'TOKEN_EXPIRED'
+          error: "Token has expired",
+          errorCode: "TOKEN_EXPIRED",
         };
       }
 
@@ -142,15 +146,14 @@ export class AuthenticationService {
         valid: true,
         token: session,
         userInfo: decoded.userInfo,
-        permissions: decoded.permissions
+        permissions: decoded.permissions,
       };
-
     } catch (error) {
-      this.logger.debug('Token validation failed', { error });
+      this.logger.debug("Token validation failed", { error });
       return {
         valid: false,
-        error: 'Invalid token',
-        errorCode: 'INVALID_TOKEN'
+        error: "Invalid token",
+        errorCode: "INVALID_TOKEN",
       };
     }
   }
@@ -161,25 +164,28 @@ export class AuthenticationService {
   async refreshToken(tokenString: string): Promise<AuthResponse> {
     try {
       const validation = this.validateToken(tokenString);
-      
+
       if (!validation.valid || !validation.token || !validation.userInfo) {
-        throw new CAMError('Cannot refresh invalid token', 'INVALID_TOKEN');
+        throw new CAMError("Cannot refresh invalid token", "INVALID_TOKEN");
       }
 
       // Generate new token
-      const newToken = this.generateToken(validation.userInfo, validation.permissions || []);
-      
+      const newToken = this.generateToken(
+        validation.userInfo,
+        validation.permissions || [],
+      );
+
       // Remove old session and add new one
       this.activeSessions.delete(validation.token.id);
       this.activeSessions.set(newToken.id, newToken);
-      
+
       // Revoke old token
       this.revokedTokens.add(tokenString);
 
-      this.logger.info('Token refreshed', {
+      this.logger.info("Token refreshed", {
         userId: validation.userInfo.id,
         oldTokenId: validation.token.id,
-        newTokenId: newToken.id
+        newTokenId: newToken.id,
       });
 
       // Ensure permissions is always defined or explicitly optional
@@ -188,16 +194,15 @@ export class AuthenticationService {
         token: newToken,
         userInfo: validation.userInfo,
         permissions: validation.permissions || [], // Provide empty array as fallback
-        expiresAt: newToken.expiresAt
+        expiresAt: newToken.expiresAt,
       };
-
     } catch (error) {
-      this.logger.error('Token refresh failed', { error });
-      
+      this.logger.error("Token refresh failed", { error });
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Token refresh failed',
-        errorCode: error instanceof CAMError ? error.code : 'REFRESH_FAILED'
+        error: error instanceof Error ? error.message : "Token refresh failed",
+        errorCode: error instanceof CAMError ? error.code : "REFRESH_FAILED",
       };
     }
   }
@@ -211,8 +216,8 @@ export class AuthenticationService {
       if (decoded?.jti) {
         this.activeSessions.delete(decoded.jti);
         this.revokedTokens.add(tokenString);
-        
-        this.logger.info('Token revoked', { tokenId: decoded.jti });
+
+        this.logger.info("Token revoked", { tokenId: decoded.jti });
         return true;
       }
       return false;
@@ -226,15 +231,16 @@ export class AuthenticationService {
    */
   hasPermission(tokenString: string, requiredPermission: string): boolean {
     const validation = this.validateToken(tokenString);
-    
+
     if (!validation.valid || !validation.permissions) {
       return false;
     }
 
-    return validation.permissions.some(permission => 
-      permission.resource === requiredPermission || 
-      permission.resource === '*' ||
-      requiredPermission.startsWith(permission.resource)
+    return validation.permissions.some(
+      (permission) =>
+        permission.resource === requiredPermission ||
+        permission.resource === "*" ||
+        requiredPermission.startsWith(permission.resource),
     );
   }
 
@@ -260,24 +266,29 @@ export class AuthenticationService {
     }
 
     if (cleanedCount > 0) {
-      this.logger.info('Cleaned up expired sessions', { cleanedCount });
+      this.logger.info("Cleaned up expired sessions", { cleanedCount });
     }
   }
 
   /**
    * Generate JWT token
    */
-  private generateToken(userInfo: UserInfo, permissions: Permission[]): AuthToken {
+  private generateToken(
+    userInfo: UserInfo,
+    permissions: Permission[],
+  ): AuthToken {
     const tokenId = crypto.randomUUID();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + this.parseExpiry(this.tokenExpiry));
+    const expiresAt = new Date(
+      now.getTime() + this.parseExpiry(this.tokenExpiry),
+    );
 
     const payload = {
       jti: tokenId,
       iat: Math.floor(now.getTime() / 1000),
       exp: Math.floor(expiresAt.getTime() / 1000),
       userInfo,
-      permissions
+      permissions,
     };
 
     const tokenString = jwt.sign(payload, this.jwtSecret);
@@ -287,35 +298,41 @@ export class AuthenticationService {
       token: tokenString,
       userId: userInfo.id,
       expiresAt: expiresAt.toISOString(),
-      permissions
+      permissions,
     };
   }
 
   /**
    * Authenticate using API key (CAM Classic method)
    */
-  private async authenticateApiKey(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
+  private async authenticateApiKey(
+    request: AuthRequest,
+  ): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     // Simplified API key validation - in production, this would check against a database
     if (!request.credentials?.apiKey) {
-      throw new CAMError('API key is required', 'MISSING_API_KEY');
+      throw new CAMError("API key is required", "MISSING_API_KEY");
     }
 
     // Mock validation - replace with actual API key verification
-    const isValid = request.credentials.apiKey.startsWith('cam_');
+    const isValid = request.credentials.apiKey.startsWith("cam_");
     if (!isValid) {
-      throw new CAMError('Invalid API key format', 'INVALID_API_KEY');
+      throw new CAMError("Invalid API key format", "INVALID_API_KEY");
     }
 
     const userInfo: UserInfo = {
-      id: crypto.createHash('sha256').update(request.credentials.apiKey).digest('hex').substring(0, 16),
+      id: crypto
+        .createHash("sha256")
+        .update(request.credentials.apiKey)
+        .digest("hex")
+        .substring(0, 16),
       name: `API User ${request.clientId}`,
       email: `${request.clientId}@api.cam`,
-      roles: ['api_user']
+      roles: ["api_user"],
     };
 
     const permissions: Permission[] = [
-      { resource: 'routing', actions: ['read', 'write'] },
-      { resource: 'metrics', actions: ['read'] }
+      { resource: "routing", actions: ["read", "write"] },
+      { resource: "metrics", actions: ["read"] },
     ];
 
     return { userInfo, permissions };
@@ -324,22 +341,27 @@ export class AuthenticationService {
   /**
    * Authenticate using OAuth (IACP collaboration method)
    */
-  private async authenticateOAuth(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
+  private async authenticateOAuth(
+    request: AuthRequest,
+  ): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     if (!request.credentials?.accessToken) {
-      throw new CAMError('OAuth access token is required', 'MISSING_ACCESS_TOKEN');
+      throw new CAMError(
+        "OAuth access token is required",
+        "MISSING_ACCESS_TOKEN",
+      );
     }
 
     // Mock OAuth validation - in production, this would verify with OAuth provider
     const userInfo: UserInfo = {
       id: crypto.randomUUID(),
-      name: request.credentials.name || 'OAuth User',
-      email: request.credentials.email || 'oauth@user.com',
-      roles: ['collaboration_user']
+      name: request.credentials.name || "OAuth User",
+      email: request.credentials.email || "oauth@user.com",
+      roles: ["collaboration_user"],
     };
 
     const permissions: Permission[] = [
-      { resource: 'collaboration', actions: ['read', 'write', 'create'] },
-      { resource: 'routing', actions: ['read'] }
+      { resource: "collaboration", actions: ["read", "write", "create"] },
+      { resource: "routing", actions: ["read"] },
     ];
 
     return { userInfo, permissions };
@@ -348,21 +370,30 @@ export class AuthenticationService {
   /**
    * Authenticate using client certificate
    */
-  private async authenticateCertificate(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
+  private async authenticateCertificate(
+    request: AuthRequest,
+  ): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     if (!request.credentials?.certificate) {
-      throw new CAMError('Client certificate is required', 'MISSING_CERTIFICATE');
+      throw new CAMError(
+        "Client certificate is required",
+        "MISSING_CERTIFICATE",
+      );
     }
 
     // Mock certificate validation
     const userInfo: UserInfo = {
-      id: crypto.createHash('sha256').update(request.credentials.certificate).digest('hex').substring(0, 16),
+      id: crypto
+        .createHash("sha256")
+        .update(request.credentials.certificate)
+        .digest("hex")
+        .substring(0, 16),
       name: `Certificate User ${request.clientId}`,
       email: `${request.clientId}@cert.cam`,
-      roles: ['enterprise_user']
+      roles: ["enterprise_user"],
     };
 
     const permissions: Permission[] = [
-      { resource: '*', actions: ['*'] } // Full access for certificate auth
+      { resource: "*", actions: ["*"] }, // Full access for certificate auth
     ];
 
     return { userInfo, permissions };
@@ -371,22 +402,27 @@ export class AuthenticationService {
   /**
    * Authenticate for collaboration session (IACP specific)
    */
-  private async authenticateCollaboration(request: AuthRequest): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
+  private async authenticateCollaboration(
+    request: AuthRequest,
+  ): Promise<{ userInfo: UserInfo; permissions: Permission[] }> {
     if (!request.credentials?.sessionToken) {
-      throw new CAMError('Collaboration session token is required', 'MISSING_SESSION_TOKEN');
+      throw new CAMError(
+        "Collaboration session token is required",
+        "MISSING_SESSION_TOKEN",
+      );
     }
 
     const userInfo: UserInfo = {
       id: crypto.randomUUID(),
-      name: request.credentials.agentName || 'Collaboration Agent',
+      name: request.credentials.agentName || "Collaboration Agent",
       email: `${request.clientId}@collab.cam`,
-      roles: ['agent']
+      roles: ["agent"],
     };
 
     const permissions: Permission[] = [
-      { resource: 'collaboration', actions: ['read', 'write', 'coordinate'] },
-      { resource: 'routing', actions: ['read'] },
-      { resource: 'state', actions: ['read', 'write'] }
+      { resource: "collaboration", actions: ["read", "write", "coordinate"] },
+      { resource: "routing", actions: ["read"] },
+      { resource: "state", actions: ["read", "write"] },
     ];
 
     return { userInfo, permissions };
@@ -397,15 +433,18 @@ export class AuthenticationService {
    */
   private validateAuthRequest(request: AuthRequest): void {
     if (!request.clientId) {
-      throw new CAMError('Client ID is required', 'MISSING_CLIENT_ID');
+      throw new CAMError("Client ID is required", "MISSING_CLIENT_ID");
     }
 
     if (!request.type) {
-      throw new CAMError('Authentication type is required', 'MISSING_AUTH_TYPE');
+      throw new CAMError(
+        "Authentication type is required",
+        "MISSING_AUTH_TYPE",
+      );
     }
 
     if (!request.credentials) {
-      throw new CAMError('Credentials are required', 'MISSING_CREDENTIALS');
+      throw new CAMError("Credentials are required", "MISSING_CREDENTIALS");
     }
   }
 
@@ -417,11 +456,16 @@ export class AuthenticationService {
     const value = parseInt(expiry.slice(0, -1));
 
     switch (unit) {
-      case 's': return value * 1000;
-      case 'm': return value * 60 * 1000;
-      case 'h': return value * 60 * 60 * 1000;
-      case 'd': return value * 24 * 60 * 60 * 1000;
-      default: return 24 * 60 * 60 * 1000; // Default 24 hours
+      case "s":
+        return value * 1000;
+      case "m":
+        return value * 60 * 1000;
+      case "h":
+        return value * 60 * 60 * 1000;
+      case "d":
+        return value * 24 * 60 * 60 * 1000;
+      default:
+        return 24 * 60 * 60 * 1000; // Default 24 hours
     }
   }
 
@@ -429,7 +473,7 @@ export class AuthenticationService {
    * Generate a secure secret for JWT signing
    */
   private generateSecret(): string {
-    return crypto.randomBytes(64).toString('hex');
+    return crypto.randomBytes(64).toString("hex");
   }
 
   /**
@@ -438,6 +482,6 @@ export class AuthenticationService {
   shutdown(): void {
     this.activeSessions.clear();
     this.revokedTokens.clear();
-    this.logger.info('Authentication Service shutdown complete');
+    this.logger.info("Authentication Service shutdown complete");
   }
 }

@@ -7,14 +7,14 @@
 // =========================================================================
 
 export interface Config {
-  logLevel: 'debug' | 'info' | 'warn' | 'error';
+  logLevel: "debug" | "info" | "warn" | "error";
   apiVersion: string;
-  environment: 'development' | 'staging' | 'production';
+  environment: "development" | "staging" | "production";
   update(config: Partial<Config>): void;
 }
 
 export interface ConfigurationUpdate {
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  logLevel?: "debug" | "info" | "warn" | "error";
   policies?: PolicyConfiguration[];
   providers?: ProviderConfiguration[];
   collaboration?: CollaborationConfiguration;
@@ -41,7 +41,7 @@ export interface AuthToken {
 
 export interface Session {
   id: string;
-  type: 'routing' | 'collaboration' | 'hybrid';
+  type: "routing" | "collaboration" | "hybrid";
   userId: string;
   createdAt: string;
   expiresAt: string;
@@ -54,7 +54,7 @@ export interface Session {
 
 export interface AuthRequest {
   clientId: string;
-  type: 'api_key' | 'oauth' | 'certificate' | 'collaboration';
+  type: "api_key" | "oauth" | "certificate" | "collaboration";
   credentials: {
     apiKey?: string;
     accessToken?: string;
@@ -111,7 +111,7 @@ export interface Permission {
 
 export interface RouteState {
   routeId: string;
-  status: 'active' | 'inactive' | 'error' | 'pending';
+  status: "active" | "inactive" | "error" | "pending";
   lastUpdated: string;
   expiresAt?: string;
   metadata?: Record<string, any>;
@@ -124,7 +124,7 @@ export interface RouteState {
 
 export interface CollaborationState {
   sessionId: string;
-  status: 'active' | 'paused' | 'completed' | 'error';
+  status: "active" | "paused" | "completed" | "error";
   participants: string[];
   lastUpdated: string;
   expiresAt?: string;
@@ -143,7 +143,12 @@ export interface StateSnapshot {
 }
 
 export interface StateChangeEvent {
-  type: 'route_state_changed' | 'collaboration_state_changed' | 'route_state_expired' | 'collaboration_state_expired' | 'state_restored';
+  type:
+    | "route_state_changed"
+    | "collaboration_state_changed"
+    | "route_state_expired"
+    | "collaboration_state_expired"
+    | "state_restored";
   timestamp: string;
   routeId?: string;
   sessionId?: string;
@@ -155,7 +160,7 @@ export interface StateChangeEvent {
 export interface StateManagerConfig {
   maxSnapshots?: number;
   cleanupInterval?: number;
-  backend?: 'memory' | 'file' | 'redis';
+  backend?: "memory" | "file" | "redis";
   storagePath?: string;
 }
 
@@ -170,7 +175,7 @@ export interface AICoreRequest {
   maxTokens?: number;
   requirements?: ProviderRequirements;
   metadata?: Record<string, any>;
-  stream?: boolean;  // Enable streaming response
+  stream?: boolean; // Enable streaming response
 }
 
 // Streaming response chunk
@@ -201,8 +206,8 @@ export interface AICoreResponse {
 }
 
 export interface ProviderRequirements {
-  cost?: 'minimize' | 'optimize' | 'performance';
-  performance?: 'fast' | 'balanced' | 'quality';
+  cost?: "minimize" | "optimize" | "performance";
+  performance?: "fast" | "balanced" | "quality";
   compliance?: string[];
   region?: string;
   capabilities?: string[];
@@ -211,7 +216,7 @@ export interface ProviderRequirements {
 export interface ProviderInfo {
   id: string;
   name: string;
-  type: 'openai' | 'anthropic' | 'google' | 'azure' | 'custom';
+  type: "openai" | "anthropic" | "google" | "azure" | "custom";
   models: string[];
   pricing: {
     inputTokens: number;
@@ -220,7 +225,7 @@ export interface ProviderInfo {
   };
   capabilities: string[];
   regions: string[];
-  status: 'available' | 'degraded' | 'unavailable';
+  status: "available" | "degraded" | "unavailable";
 }
 
 export interface PolicyValidationRequest {
@@ -246,7 +251,7 @@ export interface PolicyConfiguration {
 
 export interface PolicyRule {
   condition: string;
-  action: 'allow' | 'deny' | 'modify' | 'route';
+  action: "allow" | "deny" | "modify" | "route";
   parameters?: Record<string, any>;
 }
 
@@ -266,7 +271,7 @@ export interface ProviderConfiguration {
 export interface CollaborationRequest {
   task: string;
   requirements: string[];
-  decomposition?: 'auto' | 'manual';
+  decomposition?: "auto" | "manual";
   agents?: string[];
   timeout?: number;
   metadata?: Record<string, any>;
@@ -276,7 +281,7 @@ export interface CollaborationSession {
   id: string;
   task: string;
   agents: AgentInfo[];
-  status: 'initializing' | 'active' | 'completed' | 'failed';
+  status: "initializing" | "active" | "completed" | "failed";
   createdAt: string;
   updatedAt: string;
   metadata: Record<string, any>;
@@ -307,7 +312,7 @@ export interface AgentInfo {
   name: string;
   type: string;
   capabilities: AgentCapabilities;
-  status: 'available' | 'busy' | 'offline';
+  status: "available" | "busy" | "offline";
   reputation: number;
   metadata: Record<string, any>;
 }
@@ -317,7 +322,7 @@ export interface ComplexTask {
   description: string;
   requirements: string[];
   constraints: Record<string, any>;
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  priority: "low" | "medium" | "high" | "critical";
 }
 
 export interface TaskComponents {
@@ -341,7 +346,7 @@ export interface CollaborationWorkflow {
 
 export interface WorkflowStep {
   id: string;
-  type: 'task' | 'decision' | 'parallel' | 'sequential';
+  type: "task" | "decision" | "parallel" | "sequential";
   agent?: string;
   input: any;
   output?: any;
@@ -356,7 +361,7 @@ export interface ExecutionStep {
   endTime: string;
   input: any;
   output: any;
-  status: 'completed' | 'failed' | 'skipped';
+  status: "completed" | "failed" | "skipped";
 }
 
 export interface CollaborationConfiguration {
@@ -391,7 +396,7 @@ export interface MetricsQuery {
   startTime: string;
   endTime: string;
   metrics: string[];
-  granularity: 'minute' | 'hour' | 'day';
+  granularity: "minute" | "hour" | "day";
   filters?: Record<string, any>;
 }
 
@@ -428,14 +433,14 @@ export interface CAMErrorDetails {
 // =========================================================================
 
 export interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   components: ComponentHealth[];
   timestamp: string;
 }
 
 export interface ComponentHealth {
   name: string;
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   latency?: number;
   errorRate?: number;
   details?: Record<string, any>;
