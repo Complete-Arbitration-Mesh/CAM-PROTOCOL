@@ -59,18 +59,19 @@ jobs:
       run: npm run generate:badges
       
     - name: Upload coverage badges
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: coverage-badges
+        name: coverage-badges-${{ matrix.node-version }}
         path: ./badges/
         retention-days: 90
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage/lcov.info
         flags: unittests
         name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
 
   # End-to-End Testing
   e2e:
@@ -101,7 +102,7 @@ jobs:
       run: npm run test:e2e
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: playwright-report
@@ -130,25 +131,25 @@ jobs:
       run: npm audit --audit-level=high
 
     - name: Generate Software Bill of Materials (SBOM)
-      uses: anchore/sbom-action@v1
+      uses: anchore/sbom-action@v0
       with:
         format: cyclonedx-json
         output-file: ./sbom.json
 
     - name: Upload SBOM as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: sbom
         path: ./sbom.json
         retention-days: 90
 
     - name: Run CodeQL Analysis
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: javascript
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
 
   # Build and Package
   build:
@@ -173,7 +174,7 @@ jobs:
       run: npm run build
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist/
@@ -246,7 +247,7 @@ jobs:
       run: npm ci
 
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dist
         path: dist/
@@ -257,7 +258,7 @@ jobs:
         NODE_ENV: production
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-results
         path: performance-results/
