@@ -9,7 +9,10 @@ import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from "@opentelemetry/semantic-conventions";
+import {
+  ATTR_SERVICE_NAME,
+  ATTR_SERVICE_VERSION,
+} from "@opentelemetry/semantic-conventions";
 import type { MCPGatewayEvent, ToolCallResult, AuditRecord } from "./types.js";
 
 export interface OTelConfig {
@@ -49,11 +52,7 @@ export class MCPOTelInstrumentation {
   /**
    * Create a span for a tool call request
    */
-  startToolCallSpan(
-    toolName: string,
-    tenantId: string,
-    userId?: string
-  ): Span {
+  startToolCallSpan(toolName: string, tenantId: string, userId?: string): Span {
     const span = this.tracer.startSpan("mcp.tool_call", {
       attributes: {
         "mcp.tool.name": toolName,
@@ -113,8 +112,12 @@ export class MCPOTelInstrumentation {
         "mcp.tenant.id": record.tenantId,
         ...(record.userId && { "mcp.user.id": record.userId }),
         "mcp.action": record.action,
-        ...(record.request.toolName && { "mcp.tool.name": record.request.toolName }),
-        ...(record.request.resourceUri && { "mcp.resource.uri": record.request.resourceUri }),
+        ...(record.request.toolName && {
+          "mcp.tool.name": record.request.toolName,
+        }),
+        ...(record.request.resourceUri && {
+          "mcp.resource.uri": record.request.resourceUri,
+        }),
         "mcp.decision.allowed": record.decision.allowed,
         "mcp.decision.reason": record.decision.reason,
       },

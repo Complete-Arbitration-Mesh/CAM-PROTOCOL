@@ -11,7 +11,10 @@ import { dirname } from "path";
 import { Logger } from "../shared/logger.js";
 import { MCPToolRegistry } from "./tool-registry.js";
 import { RateLimiter } from "../routing/rate-limiter.js";
-import { MCPOTelInstrumentation, createNoOpInstrumentation } from "./otel-instrumentation.js";
+import {
+  MCPOTelInstrumentation,
+  createNoOpInstrumentation,
+} from "./otel-instrumentation.js";
 import type { Span } from "@opentelemetry/api";
 import type {
   MCPGatewayConfig,
@@ -104,17 +107,29 @@ export class MCPGateway {
     const span: Span = this.otel.startToolCallSpan(
       request.toolName,
       request.tenantId,
-      request.userId
+      request.userId,
     );
 
-    this.logger.debug("Tool call request", { traceId, toolName: request.toolName });
+    this.logger.debug("Tool call request", {
+      traceId,
+      toolName: request.toolName,
+    });
 
     // Rate limit check
     if (this.config.rateLimit.enabled) {
       const rateLimitResult = this.rateLimiter.checkLimit(request.tenantId);
       if (!rateLimitResult.allowed) {
-        this.emitEvent({ type: "rate_limited", tenantId: request.tenantId, limit: rateLimitResult.limit });
-        const result = this.createErrorResult(traceId, startTime, "Rate limit exceeded", policyActions);
+        this.emitEvent({
+          type: "rate_limited",
+          tenantId: request.tenantId,
+          limit: rateLimitResult.limit,
+        });
+        const result = this.createErrorResult(
+          traceId,
+          startTime,
+          "Rate limit exceeded",
+          policyActions,
+        );
         this.otel.recordToolCallResult(span, result);
         return result;
       }
@@ -132,7 +147,9 @@ export class MCPGateway {
       action: "tool_call",
       request: {
         toolName: request.toolName,
-        arguments: this.config.audit.includeArguments ? request.arguments : undefined,
+        arguments: this.config.audit.includeArguments
+          ? request.arguments
+          : undefined,
       },
       decision,
       policyActions,
@@ -155,7 +172,12 @@ export class MCPGateway {
         reason: decision.reason,
       });
 
-      const result = this.createErrorResult(traceId, startTime, decision.reason, policyActions);
+      const result = this.createErrorResult(
+        traceId,
+        startTime,
+        decision.reason,
+        policyActions,
+      );
       this.otel.recordToolCallResult(span, result);
       return result;
     }
@@ -164,10 +186,15 @@ export class MCPGateway {
     try {
       const client = this.registry.getClient(decision.selectedTool.serverId);
       if (!client) {
-        throw new Error(`Server not connected: ${decision.selectedTool.serverId}`);
+        throw new Error(
+          `Server not connected: ${decision.selectedTool.serverId}`,
+        );
       }
 
-      const result = await client.callTool(decision.selectedTool.tool.name, request.arguments);
+      const result = await client.callTool(
+        decision.selectedTool.tool.name,
+        request.arguments,
+      );
       const latencyMs = Date.now() - startTime;
 
       // Update metrics
@@ -203,7 +230,8 @@ export class MCPGateway {
       return toolResult;
     } catch (error) {
       const latencyMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Update metrics
       if (decision.selectedTool) {
@@ -220,7 +248,13 @@ export class MCPGateway {
         success: false,
       });
 
-      const result = this.createErrorResult(traceId, startTime, errorMessage, policyActions, decision.selectedTool);
+      const result = this.createErrorResult(
+        traceId,
+        startTime,
+        errorMessage,
+        policyActions,
+        decision.selectedTool,
+      );
       this.otel.recordToolCallResult(span, result);
       return result;
     }
@@ -230,7 +264,9 @@ export class MCPGateway {
    * Call a tool with streaming progress events
    * Returns an async generator that yields progress events during execution
    */
-  async *callToolStreaming(request: ToolCallRequest): AsyncGenerator<ToolCallStreamEvent> {
+  async *callToolStreaming(
+    request: ToolCallRequest,
+  ): AsyncGenerator<ToolCallStreamEvent> {
     const traceId = randomUUID();
     const startTime = Date.now();
     const policyActions: PolicyAction[] = [];
@@ -247,7 +283,11 @@ export class MCPGateway {
     if (this.config.rateLimit.enabled) {
       const rateLimitResult = this.rateLimiter.checkLimit(request.tenantId);
       if (!rateLimitResult.allowed) {
-        this.emitEvent({ type: "rate_limited", tenantId: request.tenantId, limit: rateLimitResult.limit });
+        this.emitEvent({
+          type: "rate_limited",
+          tenantId: request.tenantId,
+          limit: rateLimitResult.limit,
+        });
         yield { type: "error", traceId, error: "Rate limit exceeded" };
         return;
       }
@@ -297,11 +337,18 @@ export class MCPGateway {
     try {
       const client = this.registry.getClient(decision.selectedTool.serverId);
       if (!client) {
-        yield { type: "error", traceId, error: `Server not connected: ${decision.selectedTool.serverId}` };
+        yield {
+          type: "error",
+          traceId,
+          error: `Server not connected: ${decision.selectedTool.serverId}`,
+        };
         return;
       }
 
-      const result = await client.callTool(decision.selectedTool.tool.name, request.arguments);
+      const result = await client.callTool(
+        decision.selectedTool.tool.name,
+        request.arguments,
+      );
       const latencyMs = Date.now() - startTime;
 
       // Update metrics
@@ -331,7 +378,9 @@ export class MCPGateway {
         action: "tool_call",
         request: {
           toolName: request.toolName,
-          arguments: this.config.audit.includeArguments ? request.arguments : undefined,
+          arguments: this.config.audit.includeArguments
+            ? request.arguments
+            : undefined,
         },
         decision,
         policyActions,
@@ -342,7 +391,8 @@ export class MCPGateway {
       // Emit completed event
       yield { type: "completed", traceId, result: toolResult };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       yield { type: "error", traceId, error: errorMessage };
     }
   }
@@ -350,7 +400,10 @@ export class MCPGateway {
   /**
    * Arbitrate: select the best tool based on policies and requirements
    */
-  private async arbitrate(request: ToolCallRequest, traceId: string): Promise<ArbitrationDecision> {
+  private async arbitrate(
+    request: ToolCallRequest,
+    traceId: string,
+  ): Promise<ArbitrationDecision> {
     // Find matching tools
     const findCriteria: Parameters<MCPToolRegistry["findTools"]>[0] = {
       name: request.toolName,
@@ -432,14 +485,14 @@ export class MCPGateway {
    */
   private evaluatePolicies(
     tool: RegisteredTool,
-    request: ToolCallRequest
+    request: ToolCallRequest,
   ): { allowed: boolean; references: string[] } {
     const references: string[] = [];
     let allowed = true;
 
     // Sort policies by priority
     const sortedPolicies = Array.from(this.policies.values()).sort(
-      (a, b) => b.priority - a.priority
+      (a, b) => b.priority - a.priority,
     );
 
     for (const policy of sortedPolicies) {
@@ -467,11 +520,15 @@ export class MCPGateway {
   private evaluateConditions(
     conditions: MCPPolicy["conditions"],
     tool: RegisteredTool,
-    request: ToolCallRequest
+    request: ToolCallRequest,
   ): boolean {
     for (const condition of conditions) {
       const value = this.getConditionValue(condition.field, tool, request);
-      const matches = this.evaluateCondition(condition.operator, value, condition.value);
+      const matches = this.evaluateCondition(
+        condition.operator,
+        value,
+        condition.value,
+      );
       if (!matches) return false;
     }
     return true;
@@ -483,7 +540,7 @@ export class MCPGateway {
   private getConditionValue(
     field: string,
     tool: RegisteredTool,
-    request: ToolCallRequest
+    request: ToolCallRequest,
   ): unknown {
     switch (field) {
       case "tool.name":
@@ -511,7 +568,7 @@ export class MCPGateway {
   private evaluateCondition(
     operator: MCPPolicy["conditions"][0]["operator"],
     actual: unknown,
-    expected: unknown
+    expected: unknown,
   ): boolean {
     switch (operator) {
       case "eq":
@@ -523,13 +580,24 @@ export class MCPGateway {
       case "notIn":
         return Array.isArray(expected) && !expected.includes(actual);
       case "gt":
-        return typeof actual === "number" && typeof expected === "number" && actual > expected;
+        return (
+          typeof actual === "number" &&
+          typeof expected === "number" &&
+          actual > expected
+        );
       case "lt":
-        return typeof actual === "number" && typeof expected === "number" && actual < expected;
+        return (
+          typeof actual === "number" &&
+          typeof expected === "number" &&
+          actual < expected
+        );
       case "contains":
         return Array.isArray(actual) && actual.includes(expected);
       case "matches":
-        return typeof actual === "string" && new RegExp(String(expected)).test(actual);
+        return (
+          typeof actual === "string" &&
+          new RegExp(String(expected)).test(actual)
+        );
       default:
         return false;
     }
@@ -581,7 +649,7 @@ export class MCPGateway {
     startTime: number,
     error: string,
     policyActions: PolicyAction[],
-    tool?: RegisteredTool
+    tool?: RegisteredTool,
   ): ToolCallResult {
     return {
       traceId,

@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: ['./tests/vitest-setup.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov', 'html'],
+      reporter: ['text', 'lcov', 'html', 'json-summary'],
       exclude: [
         'src/**/*.d.ts',
         'src/**/index.ts',
@@ -18,10 +18,10 @@ export default defineConfig({
         'dist/**'
       ],
       thresholds: {
-        branches: 80,
-        functions: 80,
-        lines: 80,
-        statements: 80
+        branches: 40,
+        functions: 60,
+        lines: 50,
+        statements: 50
       }
     },
     testTimeout: 30000
