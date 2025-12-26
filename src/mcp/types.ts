@@ -5,7 +5,11 @@
  * CAM acts as a policy gateway that sits above MCP servers.
  */
 
-import type { Tool, Resource, Prompt } from "@modelcontextprotocol/sdk/types.js";
+import type {
+  Tool,
+  Resource,
+  Prompt,
+} from "@modelcontextprotocol/sdk/types.js";
 
 // =========================================================================
 // MCP Server Configuration
@@ -148,7 +152,12 @@ export interface ToolCallResult {
 export type ToolCallStreamEvent =
   | { type: "started"; traceId: string; toolName: string; timestamp: Date }
   | { type: "arbitrating"; traceId: string; candidateCount: number }
-  | { type: "policy_evaluated"; traceId: string; policyId: string; allowed: boolean }
+  | {
+      type: "policy_evaluated";
+      traceId: string;
+      policyId: string;
+      allowed: boolean;
+    }
   | { type: "tool_selected"; traceId: string; toolId: string; serverId: string }
   | { type: "executing"; traceId: string; toolId: string }
   | { type: "completed"; traceId: string; result: ToolCallResult }
@@ -170,7 +179,15 @@ export interface MCPPolicy {
 
 export interface PolicyCondition {
   field: string;
-  operator: "eq" | "neq" | "in" | "notIn" | "gt" | "lt" | "contains" | "matches";
+  operator:
+    | "eq"
+    | "neq"
+    | "in"
+    | "notIn"
+    | "gt"
+    | "lt"
+    | "contains"
+    | "matches";
   value: unknown;
 }
 
@@ -255,5 +272,10 @@ export type MCPGatewayEvent =
   | { type: "server_disconnected"; serverId: string; reason: string }
   | { type: "server_error"; serverId: string; error: string }
   | { type: "tool_called"; traceId: string; toolId: string; success: boolean }
-  | { type: "policy_violation"; traceId: string; policyId: string; reason: string }
+  | {
+      type: "policy_violation";
+      traceId: string;
+      policyId: string;
+      reason: string;
+    }
   | { type: "rate_limited"; tenantId: string; limit: number };

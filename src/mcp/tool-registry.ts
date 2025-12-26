@@ -192,7 +192,10 @@ export class MCPToolRegistry {
 
     for (const tool of this.tools.values()) {
       // Name filter (partial match)
-      if (criteria.name && !tool.tool.name.toLowerCase().includes(criteria.name.toLowerCase())) {
+      if (
+        criteria.name &&
+        !tool.tool.name.toLowerCase().includes(criteria.name.toLowerCase())
+      ) {
         continue;
       }
 
@@ -202,27 +205,36 @@ export class MCPToolRegistry {
       }
 
       // Trust tier filter
-      if (criteria.trustTier && !this.trustTierMatches(tool.trustTier, criteria.trustTier)) {
+      if (
+        criteria.trustTier &&
+        !this.trustTierMatches(tool.trustTier, criteria.trustTier)
+      ) {
         continue;
       }
 
       // Cost filter
-      if (criteria.maxCost !== undefined && tool.costEstimate > criteria.maxCost) {
+      if (
+        criteria.maxCost !== undefined &&
+        tool.costEstimate > criteria.maxCost
+      ) {
         continue;
       }
 
       // Tags filter (any match)
       if (criteria.tags && criteria.tags.length > 0) {
         const hasTag = criteria.tags.some((tag) =>
-          tool.tags.some((t) => t.toLowerCase().includes(tag.toLowerCase()))
+          tool.tags.some((t) => t.toLowerCase().includes(tag.toLowerCase())),
         );
         if (!hasTag) continue;
       }
 
       // Data classification filter (must not have restricted data)
-      if (criteria.dataClassifications && criteria.dataClassifications.length > 0) {
+      if (
+        criteria.dataClassifications &&
+        criteria.dataClassifications.length > 0
+      ) {
         const hasRestrictedData = tool.dataClassifications.some(
-          (dc) => !criteria.dataClassifications!.includes(dc)
+          (dc) => !criteria.dataClassifications!.includes(dc),
         );
         if (hasRestrictedData) continue;
       }
@@ -238,7 +250,7 @@ export class MCPToolRegistry {
    */
   private trustTierMatches(
     actual: RegisteredTool["trustTier"],
-    required: RegisteredTool["trustTier"]
+    required: RegisteredTool["trustTier"],
   ): boolean {
     const tiers = ["untrusted", "standard", "trusted", "privileged"];
     return tiers.indexOf(actual) >= tiers.indexOf(required);
@@ -341,7 +353,7 @@ export class MCPToolRegistry {
       latency?: number;
       success?: boolean;
       error?: string;
-    }
+    },
   ): void {
     const tool = this.tools.get(toolId);
     if (!tool) return;

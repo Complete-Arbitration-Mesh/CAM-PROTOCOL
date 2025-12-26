@@ -55,7 +55,8 @@ export class MCPClient {
       return;
     }
 
-    const protocolVersion = this.config.protocolVersion || DEFAULT_PROTOCOL_VERSION;
+    const protocolVersion =
+      this.config.protocolVersion || DEFAULT_PROTOCOL_VERSION;
     this.logger.info(`Connecting to MCP server: ${this.config.name}`, {
       transport: this.config.transport,
       serverId: this.config.id,
@@ -79,10 +80,14 @@ export class MCPClient {
       });
     } catch (error) {
       this.connected = false;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Failed to connect to MCP server: ${this.config.name}`, {
-        error: errorMessage,
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Failed to connect to MCP server: ${this.config.name}`,
+        {
+          error: errorMessage,
+        },
+      );
       throw error;
     }
   }
@@ -104,23 +109,33 @@ export class MCPClient {
 
       this.logger.info(`Disconnected from MCP server: ${this.config.name}`);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error disconnecting from MCP server: ${this.config.name}`, {
-        error: errorMessage,
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Error disconnecting from MCP server: ${this.config.name}`,
+        {
+          error: errorMessage,
+        },
+      );
     }
   }
 
   /**
    * Create transport based on config
    */
-  private async createTransport(): Promise<StdioClientTransport | SSEClientTransport> {
+  private async createTransport(): Promise<
+    StdioClientTransport | SSEClientTransport
+  > {
     switch (this.config.transport) {
       case "stdio": {
         if (!this.config.command) {
           throw new Error("stdio transport requires command");
         }
-        const stdioParams: { command: string; args?: string[]; env?: Record<string, string> } = {
+        const stdioParams: {
+          command: string;
+          args?: string[];
+          env?: Record<string, string>;
+        } = {
           command: this.config.command,
         };
         if (this.config.args) {
@@ -162,7 +177,9 @@ export class MCPClient {
         this.tools.set(tool.name, tool);
       }
 
-      this.logger.debug(`Discovered ${this.tools.size} tools from ${this.config.name}`);
+      this.logger.debug(
+        `Discovered ${this.tools.size} tools from ${this.config.name}`,
+      );
     } catch (error) {
       this.logger.warn(`Failed to list tools from ${this.config.name}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -182,7 +199,9 @@ export class MCPClient {
         this.resources.set(resource.uri, resource);
       }
 
-      this.logger.debug(`Discovered ${this.resources.size} resources from ${this.config.name}`);
+      this.logger.debug(
+        `Discovered ${this.resources.size} resources from ${this.config.name}`,
+      );
     } catch (error) {
       this.logger.warn(`Failed to list resources from ${this.config.name}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -202,7 +221,9 @@ export class MCPClient {
         this.prompts.set(prompt.name, prompt);
       }
 
-      this.logger.debug(`Discovered ${this.prompts.size} prompts from ${this.config.name}`);
+      this.logger.debug(
+        `Discovered ${this.prompts.size} prompts from ${this.config.name}`,
+      );
     } catch (error) {
       this.logger.warn(`Failed to list prompts from ${this.config.name}`, {
         error: error instanceof Error ? error.message : String(error),
@@ -213,7 +234,10 @@ export class MCPClient {
   /**
    * Call a tool
    */
-  async callTool(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
+  async callTool(
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     if (!this.connected) {
       throw new Error(`Not connected to MCP server: ${this.config.name}`);
     }
@@ -267,7 +291,10 @@ export class MCPClient {
   /**
    * Get a prompt
    */
-  async getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
+  async getPrompt(
+    name: string,
+    args?: Record<string, string>,
+  ): Promise<GetPromptResult> {
     if (!this.connected) {
       throw new Error(`Not connected to MCP server: ${this.config.name}`);
     }
@@ -383,10 +410,13 @@ export class MCPClient {
     // Look for common patterns in description
     const description = tool.description?.toLowerCase() || "";
     if (description.includes("file")) tags.push("file");
-    if (description.includes("database") || description.includes("sql")) tags.push("database");
-    if (description.includes("api") || description.includes("http")) tags.push("api");
+    if (description.includes("database") || description.includes("sql"))
+      tags.push("database");
+    if (description.includes("api") || description.includes("http"))
+      tags.push("api");
     if (description.includes("search")) tags.push("search");
-    if (description.includes("code") || description.includes("execute")) tags.push("code");
+    if (description.includes("code") || description.includes("execute"))
+      tags.push("code");
 
     return [...new Set(tags)];
   }
