@@ -64,17 +64,17 @@ CAM integrates with [Model Context Protocol (MCP)](https://modelcontextprotocol.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        Your AI Application                       │
+│                        Your AI Application                      │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    CAM MCP Gateway                               │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Policies   │  │  Arbitration │  │    Audit     │          │
-│  │  Trust Tiers │  │   Scoring    │  │   Logging    │          │
-│  │  Rate Limits │  │  Cost/Latency│  │   Tracing    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│                    CAM MCP Gateway                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
+│  │   Policies   │  │  Arbitration │  │    Audit     │           │
+│  │  Trust Tiers │  │   Scoring    │  │   Logging    │           │
+│  │  Rate Limits │  │  Cost/Latency│  │   Tracing    │           │
+│  └──────────────┘  └──────────────┘  └──────────────┘           │
 └───────────────────────────────┬─────────────────────────────────┘
                                 │
          ┌──────────────────────┼──────────────────────┐
