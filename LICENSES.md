@@ -2,52 +2,101 @@
 
 ## Overview
 
-The Complete Arbitration Mesh (CAM) Protocol consists of:
+CAM Protocol is an **open-core** project:
 
-1. **CAM Core** (proprietary) - The main software in this repository
-2. **Open Source Dependencies** - Third-party packages used by CAM
+| Component | License | Cost |
+|-----------|---------|------|
+| **Community Edition** | Apache-2.0 (Open Source) | Free |
+| **Pro Edition** | Commercial | $99/month |
+| **Enterprise Edition** | Commercial | Custom pricing |
 
-## CAM Core License
+## Community Edition (Apache-2.0)
 
-**License:** CAM-Attribution License (proprietary)
-**SPDX Identifier:** `LicenseRef-CAM-Attribution`
-**Files:** [LICENSE](./LICENSE), [LICENSE-ENTERPRISE](./LICENSE-ENTERPRISE)
+The Community Edition is **fully open source** under the Apache License 2.0.
 
-CAM is **not open source**. All usage requires explicit written permission from the author.
+```
+SPDX-License-Identifier: Apache-2.0
+```
 
-### Why GitHub Shows "Unknown License"
+### What's Included
 
-GitHub's license detection only recognizes standard open-source licenses (MIT, Apache-2.0, GPL, etc.). CAM uses a custom proprietary license, which GitHub cannot automatically categorize. This is intentional - CAM is proprietary software.
+- Core AI model routing engine
+- Basic MCP gateway
+- Basic policies (allow/deny)
+- Console logging
+- Single-tenant mode
+- All source code in this repository
 
-### Summary of Requirements
+### Your Rights
 
-| Requirement | Details |
-|-------------|---------|
-| **Permission** | Written approval required before any use |
-| **Attribution** | "Built by Andrew 'Dru' Edwards" in all materials |
-| **Commercial Use** | Requires separate signed agreement |
-| **Source Headers** | Must include SPDX identifier |
+Under Apache-2.0, you may:
+- Use commercially without restriction
+- Modify and create derivative works
+- Distribute copies
+- Patent use grant included
 
-### License Tiers
+### Requirements
 
-| Use Case | License File | Requirements |
-|----------|--------------|--------------|
-| Evaluation/Testing | [LICENSE](./LICENSE) | Written permission + attribution |
-| Internal/Commercial | [LICENSE-ENTERPRISE](./LICENSE-ENTERPRISE) | Signed agreement + attribution |
+- Include copyright notice and license
+- State changes if you modify
+- Include NOTICE file if present
 
-## Requesting Permission
+See [LICENSE](./LICENSE) for the complete Apache-2.0 text.
 
-Contact: [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
+## Pro Edition (Commercial)
 
-Include:
-- Organization and contacts
-- Intended use case
-- Distribution model
-- Any planned modifications
+The Pro Edition adds advanced features for production workloads.
+
+### Additional Features
+
+- Redis caching for high performance
+- Rate limiting per user/tenant
+- JSONL audit log export
+- OpenTelemetry observability
+- Multi-tenant architecture
+- Advanced policy engine
+- Email support (business hours)
+
+### Pricing
+
+**$99/month** per deployment
+
+### How to Purchase
+
+1. Email [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
+2. Receive your license key
+3. Activate: `licenseManager.activateLicense('your-key')`
+
+## Enterprise Edition (Commercial)
+
+The Enterprise Edition provides full capabilities for large organizations.
+
+### Additional Features (beyond Pro)
+
+- SSO/SAML authentication
+- Role-Based Access Control (RBAC)
+- Cryptographically signed audit records
+- Cloud export (S3, Azure Blob)
+- SLA dashboard
+- Dedicated support engineer
+- On-premise deployment option
+- Custom integrations
+
+### Pricing
+
+Custom pricing based on:
+- Number of users
+- Deployment requirements
+- Support SLA needs
+- Custom feature requests
+
+### How to Purchase
+
+Contact [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com) to discuss your requirements.
 
 ## Open Source Dependencies
 
-CAM uses open-source packages under their respective licenses. These licenses apply **only** to those packages, not to CAM itself.
+CAM uses open-source packages under their respective licenses:
 
 ### Production Dependencies
 
@@ -74,32 +123,59 @@ CAM uses open-source packages under their respective licenses. These licenses ap
 | eslint, prettier | MIT | Code quality |
 | @playwright/test | Apache-2.0 | E2E testing |
 
-### License Compliance
-
-The open-source dependencies are used in compliance with their licenses:
-- MIT: Permissive, allows commercial use with attribution
-- Apache-2.0: Permissive, allows commercial use with attribution and patent grant
-
-Full license texts for dependencies can be found in their respective `node_modules/*/LICENSE` files.
+All dependencies are used in compliance with their licenses.
 
 ## Source File Headers
 
-All CAM source files should include:
+All CAM source files include:
 
 ```typescript
-// SPDX-License-Identifier: LicenseRef-CAM-Attribution
+// SPDX-License-Identifier: Apache-2.0
 // Copyright (c) 2025 Andrew "Dru" Edwards. All rights reserved.
 ```
 
-## Attribution Guidelines
+## Feature Gating
 
-When permission is granted, include visible attribution:
+Features are automatically gated based on your license:
 
-- **README files**: "Built by Andrew 'Dru' Edwards"
-- **UI/About pages**: Creator credit visible to end users
-- **Documentation**: Clear authorship statement
-- **Marketing materials**: Appropriate creator acknowledgment
+```typescript
+import { licenseManager, checkFeature, requireFeature } from '@cam-protocol/complete-arbitration-mesh';
 
-## Questions
+// Check edition
+console.log(licenseManager.getEdition()); // 'community', 'pro', or 'enterprise'
 
-For licensing questions: [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
+// Check specific feature
+if (checkFeature('redisCaching')) {
+  // Redis caching is available
+}
+
+// Require feature (throws LicenseError if unavailable)
+requireFeature('ssoSaml'); // Throws if not Enterprise
+```
+
+## FAQ
+
+**Q: Can I use Community Edition in production?**
+A: Yes! Many production systems run on Community Edition.
+
+**Q: What happens when my Pro/Enterprise license expires?**
+A: Pro/Enterprise features stop working. Community features continue.
+
+**Q: Can I contribute to the project?**
+A: Yes! Community contributions are welcome under Apache-2.0.
+
+**Q: Is there a trial for Pro/Enterprise?**
+A: Contact us for a 14-day trial license.
+
+## Contact
+
+- **Sales:** [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
+- **Support:** [GitHub Issues](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/issues)
+- **Website:** https://cam-protocol.dev
+
+---
+
+*CAM Protocol Community Edition: Apache-2.0*
+*CAM Protocol Pro/Enterprise Editions: Commercial License Required*
+
+Copyright (c) 2025 Andrew "Dru" Edwards. All rights reserved.
