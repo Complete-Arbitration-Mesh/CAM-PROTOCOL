@@ -20,10 +20,6 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     
-    outputs:
-      release-id: ${{ steps.create-release.outputs.id }}
-      upload-url: ${{ steps.create-release.outputs.upload_url }}
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -44,22 +40,24 @@ jobs:
       run: |
         # Generate changelog from git commits
         echo "## Changes" > CHANGELOG.md
-        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> CHANGELOG.md
+        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo HEAD~10)..HEAD >> CHANGELOG.md || echo "- Initial release" >> CHANGELOG.md
         echo "" >> CHANGELOG.md
         echo "## Full Changelog" >> CHANGELOG.md
-        echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)...${{ steps.get-version.outputs.version }}" >> CHANGELOG.md
+        PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$PREV_TAG" ]; then
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${{ steps.get-version.outputs.version }}" >> CHANGELOG.md
+        fi
 
     - name: Create Release
       id: create-release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.get-version.outputs.version }}
-        release_name: CAM Protocol ${{ steps.get-version.outputs.version }}
+        name: CAM Protocol ${{ steps.get-version.outputs.version }}
         body_path: CHANGELOG.md
         draft: false
         prerelease: ${{ contains(steps.get-version.outputs.version, '-') }}
+        generate_release_notes: true
 
   # Build and Package
   build-packages:
@@ -94,14 +92,9 @@ jobs:
           --transform 's,^,cam-protocol/,'
 
     - name: Upload package to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ needs.create-release.outputs.upload-url }}
-        asset_path: dist-packages/cam-protocol-${{ matrix.target }}.tar.gz
-        asset_name: cam-protocol-${{ matrix.target }}.tar.gz
-        asset_content_type: application/gzip
+        files: dist-packages/cam-protocol-${{ matrix.target }}.tar.gz
 
   # Publish to NPM
   publish-npm:
@@ -209,14 +202,9 @@ jobs:
         helm package . --version ${{ steps.get-version.outputs.version }} --app-version ${{ steps.get-version.outputs.version }}
 
     - name: Upload Helm chart to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
-        upload_url: ${{ needs.create-release.outputs.upload-url }}
-        asset_path: deployment/kubernetes/helm/cam-arbitration-mesh-${{ steps.get-version.outputs.version }}.tgz
-        asset_name: cam-arbitration-mesh-helm-${{ steps.get-version.outputs.version }}.tgz
-        asset_content_type: application/gzip
+        files: deployment/kubernetes/helm/cam-arbitration-mesh-${{ steps.get-version.outputs.version }}.tgz
 
   # Notify stakeholders
   notify:
