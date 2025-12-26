@@ -1,5 +1,7 @@
-// SPDX-License-Identifier: LicenseRef-CAM-Attribution
+// SPDX-License-Identifier: Apache-2.0
+// Copyright (c) 2025 Andrew "Dru" Edwards. All rights reserved.
 // Main entry point for the Complete Arbitration Mesh
+
 export { CompleteArbitrationMesh } from "./core/complete-arbitration-mesh.js";
 export { CAMClient } from "./client/cam-client.js";
 
@@ -49,7 +51,22 @@ export {
 // Constants
 export { VERSION, API_VERSION } from "./shared/constants.js";
 
-// Payment and subscription exports
+// Licensing - Edition management
+export {
+  LicenseManager,
+  LicenseError,
+  licenseManager,
+  checkFeature,
+  requireFeature,
+} from "./licensing/index.js";
+
+export type {
+  Edition,
+  EditionFeatures,
+  LicenseInfo,
+} from "./licensing/index.js";
+
+// Payment and subscription exports (Pro/Enterprise feature)
 export {
   StripeService,
   SubscriptionManager,

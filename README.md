@@ -4,7 +4,7 @@
   <img src="docs/assets/cam1.png" alt="Complete Arbitration Mesh Logo" width="200"/>
   <h3>Complete Arbitration Mesh (CAM) Protocol</h3>
 
-  [![License: Contact Andrew "Dru" Edwards](https://img.shields.io/badge/license-Contact%20Andrew%20%22Dru%22%20Edwards-critical)](LICENSE)
+  [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
   [![Version](https://img.shields.io/badge/Version-2.1.1-brightgreen.svg)](docs/RELEASE_NOTES.md)
   [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](CHANGELOG.md)
   [![Compliance](https://img.shields.io/badge/Compliance-GDPR%20|%20CCPA-green.svg)](docs/legal/COMPLIANCE_CHECKLIST.md)
@@ -347,16 +347,26 @@ The Complete Arbitration Mesh takes security seriously:
 
 See [Security Checklist](docs/security/SECURITY_CHECKLIST.md) for detailed security controls and deployment guidance.
 
-## 📋 Subscription Tiers
+## 📋 Editions
 
-| Feature | Community | Growth | Professional | Enterprise |
-|---------|:---------:|:------:|:------------:|:----------:|
-| **AI Model Arbitration** | ✅ | ✅ | ✅ | ✅ |
-| **Agent Collaboration** | Basic | Standard | Advanced | Comprehensive |
-| **Policy Management** | Limited | Standard | Advanced | Enterprise-grade |
-| **Support** | Community | Email | Business Hours | 24/7 Premium |
-| **SLA** | None | 99.9% | 99.95% | 99.99% |
-| **Price** | Free | [Contact Us](mailto:edwardstechpros@outlook.com) | [Contact Us](mailto:edwardstechpros@outlook.com) | [Contact Us](mailto:edwardstechpros@outlook.com) |
+CAM Protocol is available in three editions. See [EDITIONS.md](EDITIONS.md) for complete details.
+
+| Feature | Community | Pro | Enterprise |
+|---------|:---------:|:---:|:----------:|
+| **Core Routing Engine** | ✅ | ✅ | ✅ |
+| **Basic MCP Gateway** | ✅ | ✅ | ✅ |
+| **Basic Policies** | ✅ | ✅ | ✅ |
+| **Redis Caching** | ❌ | ✅ | ✅ |
+| **Rate Limiting** | ❌ | ✅ | ✅ |
+| **OpenTelemetry** | ❌ | ✅ | ✅ |
+| **Multi-Tenant** | ❌ | ✅ | ✅ |
+| **SSO/SAML** | ❌ | ❌ | ✅ |
+| **RBAC** | ❌ | ❌ | ✅ |
+| **Signed Audit** | ❌ | ❌ | ✅ |
+| **Support** | GitHub Issues | Email | Dedicated |
+| **Price** | Free | $99/mo | Custom |
+
+**Get Started:** `npm install @anthropic-ai/cam-protocol` — Community edition works out of the box!
 
 ## 🤝 Contributing
 
@@ -364,21 +374,30 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## 📄 License
 
-**CAM Protocol is proprietary software.** All usage requires written permission.
+**CAM Protocol Community Edition is open source under the [Apache License 2.0](LICENSE).**
 
-> **Note:** GitHub may show "Unknown license" because CAM uses a custom proprietary license (`LicenseRef-CAM-Attribution`), not a standard open-source license. This is intentional.
+| Edition | License | Usage |
+|---------|---------|-------|
+| Community | Apache-2.0 | Free for any use |
+| Pro | Commercial | Requires license key |
+| Enterprise | Commercial | Requires license agreement |
 
-| Use Case | License | Requirements |
-|----------|---------|--------------|
-| Evaluation | [CAM-Attribution](LICENSE) | Written permission + attribution |
-| Internal/Commercial | [LICENSE-ENTERPRISE](LICENSE-ENTERPRISE) | Signed agreement + attribution |
-| Open Source Dependencies | Various (MIT, Apache-2.0) | See [LICENSES.md](LICENSES.md) |
+```typescript
+import { licenseManager, checkFeature } from '@cam-protocol/complete-arbitration-mesh';
 
-**To request permission:** Email [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com)
+// Community features work immediately
+console.log(licenseManager.getEdition()); // 'community'
 
-All approved use must credit: `Built by Andrew "Dru" Edwards`
+// Activate Pro/Enterprise with your license key
+licenseManager.activateLicense('your-license-key');
 
-See [LICENSES.md](LICENSES.md) for complete licensing details and OSS dependency attributions.
+// Check feature availability
+if (checkFeature('redisCaching')) {
+  // Use Pro/Enterprise feature
+}
+```
+
+**Purchase Pro/Enterprise:** [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com) | [EDITIONS.md](EDITIONS.md)
 
 ## 🆘 Support
 
