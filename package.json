@@ -74,7 +74,7 @@
     "@opentelemetry/semantic-conventions": "^1.38.0",
     "chalk": "^4.1.2",
     "cli-table3": "^0.6.5",
-    "fastify": "^4.28.1",
+    "fastify": "^5.8.3",
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^2.7.0",
