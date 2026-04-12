@@ -1,6 +1,6 @@
 {
   "name": "@cam-protocol/complete-arbitration-mesh",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Intelligent orchestration and collaboration for modern AI ecosystems",
   "main": "dist/index.js",
   "module": "dist/index.js",

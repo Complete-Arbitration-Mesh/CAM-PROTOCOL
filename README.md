@@ -109,11 +109,19 @@ const gateway = new MCPGateway({
   policies: [{
     id: 'no-pii-external',
     name: 'Block PII to external tools',
+    description: 'Deny tool calls that handle PII data',
     priority: 100,
     enabled: true,
     conditions: [{ field: 'tool.dataClassifications', operator: 'contains', value: 'pii' }],
     actions: ['deny'],
   }],
+  defaults: {
+    timeout: 30000,
+    maxRetries: 2,
+    retryDelayMs: 500,
+    defaultTrustTier: 'standard',
+    protocolVersion: '2025-11-25',
+  },
   rateLimit: { enabled: true, requestsPerMinute: 100 },
   audit: { enabled: true, retentionDays: 30, includeArguments: true, includeResults: false },
 });

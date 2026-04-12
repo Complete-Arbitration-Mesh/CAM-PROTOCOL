@@ -23,9 +23,10 @@ The CAM Protocol reached production-ready status with the **2.0.0** release on M
 
 | Milestone | Status | Description |
 |-----------|--------|-------------|
+| v2.1.2 | ✅ Complete | MCP Gateway completion, build hardening, +91 tests |
+| OpenTelemetry Integration | ✅ Complete | OTLP HTTP traces for all MCP tool calls and gateway events |
 | v2.2.0 | 📅 Planned | Enhanced routing algorithms and cost optimization |
 | Kubernetes Operator | 📅 Planned | Native Kubernetes integration for simplified deployment |
-| Observability Enhancements | 📅 Planned | OpenTelemetry integration and Grafana dashboards |
 | Natural Language Interface | 📅 Planned | Premium feature for Growth+ tier customers |
 
 ### Q2 2026

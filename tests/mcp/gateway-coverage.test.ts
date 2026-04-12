@@ -54,6 +54,18 @@ vi.mock("../../src/mcp/tool-registry.js", () => {
       };
     }
 
+    getAllServerStatuses() {
+      return Array.from(this.servers.entries()).map(([id, config]: [string, any]) => ({
+        config: { id, name: config.name || id, ...config },
+        status: (this as any).mockConnectedCount !== undefined
+          ? ((this as any).mockConnectedCount > 0 ? "connected" : "disconnected")
+          : "connected",
+        toolCount: 0,
+        resourceCount: 0,
+        promptCount: 0,
+      }));
+    }
+
     async refreshAll() {
       this.refreshAllCalled = true;
     }
@@ -127,7 +139,7 @@ describe("MCPGateway - getHealth()", () => {
     const gateway = new MCPGateway(makeConfig({ servers: [] }));
     const health = gateway.getHealth();
     expect(health.status).toBe("healthy");
-    expect(health.servers.total).toBe(0);
+    expect(health.registry.serverCount).toBe(0);
   });
 
   it("should return healthy when all servers are connected", async () => {
@@ -138,8 +150,8 @@ describe("MCPGateway - getHealth()", () => {
 
     const health = gateway.getHealth();
     expect(health.status).toBe("healthy");
-    expect(health.servers.connected).toBe(1);
-    expect(health.uptime).toBe(true);
+    expect(health.registry.connectedServers).toBe(1);
+    expect(typeof health.uptime).toBe("number");
     await gateway.shutdown();
   });
 

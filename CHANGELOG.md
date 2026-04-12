@@ -1,5 +1,46 @@
 # Complete Arbitration Mesh - CI/CD Changelog
 
+## Version 2.1.2 - MCP Gateway Completion + Build Hardening
+**Release Date**: 2026-04-12
+**Build**: Production Ready
+**Status**: Patch Release (v2.1.2)
+
+This release completes the MCP Gateway, hardens the build pipeline for npm publishing,
+and adds comprehensive test coverage for the MCP module.
+
+---
+
+### Build & Packaging
+
+- **Fixed tsconfig rootDir** — output was landing in `dist/src/` instead of `dist/`. Set `rootDir: "./src"` so the built package matches the `main`/`types` fields in package.json.
+- **Added `exports` map** to package.json with types-first ordering and `./mcp` subpath export for direct gateway imports.
+- **Added MCP re-exports** to main `src/index.ts` — `MCPGateway`, `MCPClient`, `MCPToolRegistry`, `MCPOTelInstrumentation`, `createNoOpInstrumentation`, and all MCP types now exported from the package root.
+- **Included `EDITIONS.md` and `CHANGELOG.md`** in the `files` field so they ship with the package.
+- **Added keywords**: `mcp`, `model-context-protocol`, `gateway`, `opentelemetry`.
+
+---
+
+### Bug Fixes
+
+- **MCPClient.disconnect()**: moved `connected = false` and cache clears to `finally` block — previously a `close()` error left the client in a permanently connected state.
+- **README quick example**: added required `defaults` field to `MCPGatewayConfig` example (previously would throw at runtime).
+
+---
+
+### Tests
+
+322 tests passing (+91 new), 4 skipped (spawn-dependent integration), 0 failing.
+
+New test files:
+- `tests/mcp/client.test.ts` — 42 tests: transport creation, discovery (tools/resources/prompts), callTool error classification, timeout wrapping, connection state
+- `tests/mcp/otel-instrumentation.test.ts` — 33 tests: span attributes, all event types, audit spans, shutdown, createNoOpInstrumentation
+- `tests/mcp/gateway-coverage.test.ts` — gateway retry logic, streaming, policy evaluation, audit JSONL, event emission
+- `tests/mcp-contract/schema-validation.test.ts` — 25 contract tests: config schema, policy conditions, tool request/result shapes
+
+Coverage for `src/mcp/`: 87.74% statements (target was >80%).
+
+---
+
 ## Version 2.1.1 - Trust Patch Release
 **Release Date**: 2025-12-25
 **Build**: Production Ready

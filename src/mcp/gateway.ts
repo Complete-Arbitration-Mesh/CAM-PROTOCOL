@@ -96,51 +96,6 @@ export class MCPGateway {
   }
 
   /**
-   * Health check for the MCP gateway
-   * Returns a summary of connected servers and overall readiness.
-   */
-  getHealth(): {
-    status: "healthy" | "degraded" | "unhealthy";
-    servers: {
-      total: number;
-      connected: number;
-      disconnected: number;
-    };
-    tools: number;
-    policies: number;
-    auditRecords: number;
-    uptime: boolean;
-  } {
-    const stats = this.registry.getStats();
-    const connectedRatio =
-      stats.serverCount === 0
-        ? 1
-        : stats.connectedServers / stats.serverCount;
-
-    let status: "healthy" | "degraded" | "unhealthy";
-    if (stats.serverCount === 0 || connectedRatio === 1) {
-      status = "healthy";
-    } else if (connectedRatio > 0) {
-      status = "degraded";
-    } else {
-      status = "unhealthy";
-    }
-
-    return {
-      status,
-      servers: {
-        total: stats.serverCount,
-        connected: stats.connectedServers,
-        disconnected: stats.serverCount - stats.connectedServers,
-      },
-      tools: stats.toolCount,
-      policies: this.policies.size,
-      auditRecords: this.auditLog.length,
-      uptime: true,
-    };
-  }
-
-  /**
    * Call a tool with policy enforcement and arbitration
    */
   async callTool(request: ToolCallRequest): Promise<ToolCallResult> {
@@ -927,6 +882,81 @@ export class MCPGateway {
    */
   getRegistry(): MCPToolRegistry {
     return this.registry;
+  }
+
+  /**
+   * Health check — returns current gateway status suitable for /health endpoints
+   */
+  getHealth(): {
+    status: "healthy" | "degraded" | "unhealthy";
+    version: string;
+    uptime: number;
+    servers: {
+      total: number;
+      connected: number;
+      disconnected: number;
+    };
+    /** @deprecated Use `servers` instead */
+    registry: {
+      serverCount: number;
+      connectedServers: number;
+      toolCount: number;
+      resourceCount: number;
+      promptCount: number;
+    };
+    tools: number;
+    policies: number;
+    auditRecords: number;
+    rateLimit: {
+      enabled: boolean;
+      requestsPerMinute: number;
+    };
+    serverDetails: Array<{
+      id: string;
+      name: string;
+      status: string;
+      toolCount: number;
+    }>;
+  } {
+    const registryStats = this.registry.getStats();
+    const serverStatuses = this.registry.getAllServerStatuses();
+
+    let status: "healthy" | "degraded" | "unhealthy";
+    if (registryStats.serverCount === 0) {
+      status = "healthy"; // No servers configured — valid state
+    } else if (registryStats.connectedServers === 0) {
+      status = "unhealthy"; // Servers configured but none connected
+    } else if (registryStats.connectedServers < registryStats.serverCount) {
+      status = "degraded"; // Some servers disconnected
+    } else {
+      status = "healthy";
+    }
+
+    return {
+      status,
+      version: "2.1.2",
+      uptime: process.uptime(),
+      servers: {
+        total: registryStats.serverCount,
+        connected: registryStats.connectedServers,
+        disconnected: registryStats.serverCount - registryStats.connectedServers,
+      },
+      // Backward-compatible alias — use `servers` for new code
+      registry: registryStats,
+      tools: registryStats.toolCount,
+      policies: this.policies.size,
+      auditRecords: this.auditLog.length,
+      rateLimit: {
+        enabled: this.config.rateLimit.enabled,
+        requestsPerMinute: this.config.rateLimit.requestsPerMinute,
+      },
+      serverDetails: serverStatuses.map((s) => ({
+        id: s.config.id,
+        name: s.config.name,
+        status: s.status,
+        toolCount: s.toolCount,
+      })),
+    };
   }
 
   /**
