@@ -9,7 +9,7 @@
   [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](CHANGELOG.md)
   [![Compliance](https://img.shields.io/badge/Compliance-GDPR%20|%20CCPA-green.svg)](docs/legal/COMPLIANCE_CHECKLIST.md)
   [![Build Status](https://img.shields.io/github/workflow/status/Complete-Arbitration-Mesh/CAM-PROTOCOL/Continuous%20Integration?branch=main)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
-  [![Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen.svg)](CHANGELOG.md)
+  [![Coverage](https://img.shields.io/badge/coverage-70%25-yellow.svg)](CHANGELOG.md) [![MCP Coverage](https://img.shields.io/badge/mcp--coverage-88%25-brightgreen.svg)](CHANGELOG.md)
   [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-orange)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
 
   **Intelligent Orchestration and Collaboration for Modern AI Ecosystems**
@@ -172,10 +172,7 @@ See [examples/quickstart](examples/quickstart) for more details.
 ### Try it in 30 Seconds
 
 ```bash
-# Run our interactive demo to see CAM in action
-npx @cam-protocol/demo
-
-# Or try our value demonstration script
+# Try our value demonstration script
 npm run demo:value
 ```
 

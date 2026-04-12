@@ -2,7 +2,7 @@
  * Configuration management for the Complete Arbitration Mesh
  */
 
-import type { LogLevel } from "./logger";
+import type { LogLevel } from "./logger.js";
 
 export interface ConfigOptions {
   logLevel?: LogLevel;

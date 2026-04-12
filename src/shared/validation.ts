@@ -2,7 +2,7 @@
  * Request validation utilities for the Complete Arbitration Mesh
  */
 
-import { ValidationError } from "./errors";
+import { ValidationError } from "./errors.js";
 import type {
   AICoreRequest,
   CollaborationRequest,
@@ -10,7 +10,7 @@ import type {
   AgentCapabilities,
   ComplexTask,
   CollaborationWorkflow,
-} from "./types";
+} from "./types.js";
 
 export interface ValidationResult {
   valid: boolean;

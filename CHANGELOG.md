@@ -359,7 +359,6 @@ This represents a **fundamental architectural transformation** from the original
 - Dependencies reduced from 133 to <20 focused packages
 - Express ecosystem → Fastify ecosystem
 - React/Vite frontend stack → Server-side SDK
-- Stripe integration → Removed (external integration pattern)
 ```
 
 ---
@@ -622,13 +621,12 @@ tests/
 
 **Rationale:** Shifted to SDK-first architecture focusing on backend services
 
-### 2. **Payment Integration**
+### 2. **Legacy Payment Server**
 **Removed Files:**
-- `/server/stripe.ts`
-- `/docs/payment/`
-- Stripe webhook handlers
+- `/server/stripe.ts` (old server-side handler)
+- `/docs/payment/` (superseded documentation)
 
-**Rationale:** External integration pattern recommended over built-in payment
+**Note:** The `stripe` SDK remains a first-class dependency. Payment functionality is exposed via `src/payment/` (`StripeService`, `SubscriptionManager`, `PaymentAPI`) and exported from the package root.
 
 ### 3. **CLI Tools**
 **Removed Files:**

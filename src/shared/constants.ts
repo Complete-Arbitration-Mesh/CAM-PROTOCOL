@@ -2,7 +2,7 @@
  * Constants used throughout the Complete Arbitration Mesh
  */
 
-export const VERSION = "2.0.0";
+export const VERSION = "2.1.2";
 export const API_VERSION = "2.0";
 
 export const DEFAULT_ENDPOINTS = {
