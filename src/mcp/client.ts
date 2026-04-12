@@ -102,12 +102,6 @@ export class MCPClient {
 
     try {
       await this.client.close();
-      this.connected = false;
-      this.tools.clear();
-      this.resources.clear();
-      this.prompts.clear();
-
-      this.logger.info(`Disconnected from MCP server: ${this.config.name}`);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -117,7 +111,15 @@ export class MCPClient {
           error: errorMessage,
         },
       );
+      // Still mark as disconnected — we cannot use the connection after a close error
+    } finally {
+      this.connected = false;
+      this.tools.clear();
+      this.resources.clear();
+      this.prompts.clear();
     }
+
+    this.logger.info(`Disconnected from MCP server: ${this.config.name}`);
   }
 
   /**
@@ -232,7 +234,7 @@ export class MCPClient {
   }
 
   /**
-   * Call a tool
+   * Call a tool with timeout handling
    */
   async callTool(
     name: string,
@@ -249,9 +251,15 @@ export class MCPClient {
 
     this.logger.debug(`Calling tool: ${name}`, { serverId: this.config.id });
 
+    const timeout = this.config.timeout || 30000; // Default 30s timeout
     const startTime = Date.now();
+
     try {
-      const result = await this.client.callTool({ name, arguments: args });
+      const result = await this.withTimeout(
+        this.client.callTool({ name, arguments: args }),
+        timeout,
+        `Tool call '${name}' timed out after ${timeout}ms`,
+      );
       const latency = Date.now() - startTime;
 
       this.logger.debug(`Tool call completed: ${name}`, { latency });
@@ -259,12 +267,61 @@ export class MCPClient {
       return result as CallToolResult;
     } catch (error) {
       const latency = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Classify error types for better handling
+      const isTimeout = errorMessage.includes("timed out");
+      const isConnectionError =
+        errorMessage.includes("ECONNREFUSED") ||
+        errorMessage.includes("ENOTFOUND") ||
+        errorMessage.includes("ETIMEDOUT");
+
       this.logger.error(`Tool call failed: ${name}`, {
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
         latency,
+        isTimeout,
+        isConnectionError,
       });
+
+      // Wrap with additional context
+      if (isTimeout) {
+        throw new Error(
+          `MCP server '${this.config.name}' timeout: ${errorMessage}`,
+        );
+      }
+      if (isConnectionError) {
+        throw new Error(
+          `MCP server '${this.config.name}' connection error: ${errorMessage}`,
+        );
+      }
       throw error;
     }
+  }
+
+  /**
+   * Execute a promise with timeout
+   */
+  private withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    errorMessage: string,
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(errorMessage));
+      }, timeoutMs);
+
+      promise
+        .then((result) => {
+          clearTimeout(timer);
+          resolve(result);
+        })
+        .catch((error) => {
+          clearTimeout(timer);
+          reject(error);
+        });
+    });
   }
 
   /**

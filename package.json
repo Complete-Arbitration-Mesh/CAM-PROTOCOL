@@ -3,7 +3,20 @@
   "version": "2.1.1",
   "description": "Intelligent orchestration and collaboration for modern AI ecosystems",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp/index.d.ts",
+      "import": "./dist/mcp/index.js",
+      "require": "./dist/mcp/index.js"
+    }
+  },
   "license": "Apache-2.0",
   "author": "Andrew \"Dru\" Edwards <EdwardsTechPros@Outlook.com>",
   "homepage": "https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL",
@@ -22,7 +35,11 @@
     "agents",
     "machine-learning",
     "orchestration",
-    "iacp"
+    "iacp",
+    "mcp",
+    "model-context-protocol",
+    "gateway",
+    "opentelemetry"
   ],
   "scripts": {
     "dev": "vite dev",
@@ -47,6 +64,7 @@
     "mcp:gateway": "tsx examples/mcp-gateway/gateway-server.ts",
     "run:benchmarks": "ts-node scripts/run-benchmarks.ts",
     "validate:editions": "tsx scripts/validate-editions.ts",
+    "check:docs": "node scripts/check-docs-consistency.js",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
@@ -78,7 +96,7 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^2.7.0",
-    "openai": "^4.75.1",
+    "openai": "^6.34.0",
     "ora": "^5.4.1",
     "pino": "^8.21.0",
     "pino-pretty": "^11.2.2",
@@ -111,8 +129,10 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE-CORE",
-    "LICENSE-ENTERPRISE"
+    "LICENSE",
+    "LICENSES.md",
+    "EDITIONS.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=16.0.0",

@@ -44,6 +44,9 @@ jobs:
     - name: Format check
       run: npm run format -- --check
 
+    - name: Check documentation consistency
+      run: npm run check:docs
+
     - name: Run unit tests
       run: npm run test:unit
 

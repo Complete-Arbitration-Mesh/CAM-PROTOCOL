@@ -1,5 +1,6 @@
 {
-  "compilerOptions": {    "target": "ES2022",
+  "compilerOptions": {
+    "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Node",
@@ -11,7 +12,7 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./src",
     "removeComments": false,
     "strict": true,
     "noImplicitAny": true,
@@ -40,13 +41,10 @@
     }
   },
   "include": [
-    "src/**/*",
-    "tests/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "**/*.test.ts",
-    "**/*.spec.ts"
+    "dist"
   ]
 }

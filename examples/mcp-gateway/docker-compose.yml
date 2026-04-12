@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  # SSE MCP Server (HTTP transport)
+  mcp-sse-server:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - SSE_PORT=3001
+    command: ["npx", "tsx", "examples/mcp-gateway/servers/sse-server.ts"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
   # CAM MCP Gateway
   gateway:
     build:
@@ -13,12 +31,37 @@ services:
       - CAM_LOG_LEVEL=info
       - CAM_OTEL_ENABLED=true
       - CAM_OTEL_EXPORTER_URL=http://jaeger:4318/v1/traces
+      - SSE_SERVER_URL=http://mcp-sse-server:3001/sse
     depends_on:
-      - jaeger
+      mcp-sse-server:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
     volumes:
       - ./config:/app/config:ro
       - ./audit:/app/audit
-    command: ["node", "dist/examples/mcp-gateway/gateway-server.js"]
+    command: ["npx", "tsx", "examples/mcp-gateway/gateway-server.ts"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  # E2E Test Runner
+  test-runner:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=test
+      - GATEWAY_URL=http://gateway:8080
+    depends_on:
+      gateway:
+        condition: service_healthy
+    command: ["npx", "tsx", "examples/mcp-gateway/e2e-test.ts"]
+    profiles:
+      - test
 
   # Jaeger for distributed tracing
   jaeger:
@@ -40,6 +83,8 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
+    profiles:
+      - monitoring
 
   # Optional: Grafana for dashboards
   grafana:
@@ -55,6 +100,8 @@ services:
     depends_on:
       - prometheus
       - jaeger
+    profiles:
+      - monitoring
 
 networks:
   default:

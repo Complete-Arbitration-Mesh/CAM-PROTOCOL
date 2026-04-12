@@ -366,7 +366,7 @@ CAM Protocol is available in three editions. See [EDITIONS.md](EDITIONS.md) for 
 | **Support** | GitHub Issues | Email | Dedicated |
 | **Price** | Free | $99/mo | Custom |
 
-**Get Started:** `npm install @anthropic-ai/cam-protocol` — Community edition works out of the box!
+**Get Started:** `npm install @cam-protocol/complete-arbitration-mesh` — Community edition works out of the box!
 
 ## 🤝 Contributing
 
@@ -398,6 +398,8 @@ if (checkFeature('redisCaching')) {
 ```
 
 **Purchase Pro/Enterprise:** [EdwardsTechPros@Outlook.com](mailto:EdwardsTechPros@Outlook.com) | [EDITIONS.md](EDITIONS.md)
+
+For complete licensing details including open source dependencies, see [LICENSES.md](LICENSES.md).
 
 ## 🆘 Support
 

@@ -9,27 +9,66 @@ import { createServer, IncomingMessage, ServerResponse } from "http";
 import { MCPGateway } from "../../src/mcp/gateway.js";
 import type { MCPGatewayConfig, ToolCallRequest } from "../../src/mcp/types.js";
 
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 // Configuration from environment or defaults
 const config: MCPGatewayConfig = {
   servers: [
-    // Add your MCP servers here
-    // Example: filesystem server
-    // {
-    //   id: "filesystem",
-    //   name: "Filesystem Server",
-    //   transport: "stdio",
-    //   command: "npx",
-    //   args: ["-y", "@modelcontextprotocol/server-filesystem", "/data"],
-    //   trustTier: "trusted",
-    //   enabled: true,
-    // },
+    // Fast stdio server (premium tier, high cost, low latency)
+    {
+      id: "fast",
+      name: "Fast Premium Server",
+      transport: "stdio",
+      command: "npx",
+      args: ["tsx", join(__dirname, "servers/fast-server.ts")],
+      trustTier: "trusted",
+      costPerCall: 0.05,
+      timeout: 30000,
+      enabled: true,
+    },
+    // Cheap stdio server (standard tier, low cost, higher latency)
+    {
+      id: "cheap",
+      name: "Cheap Budget Server",
+      transport: "stdio",
+      command: "npx",
+      args: ["tsx", join(__dirname, "servers/cheap-server.ts")],
+      trustTier: "standard",
+      costPerCall: 0.001,
+      timeout: 30000,
+      enabled: true,
+    },
+    // SSE server (http transport, standard tier)
+    {
+      id: "sse",
+      name: "SSE HTTP Server",
+      transport: "sse",
+      endpoint: process.env["SSE_SERVER_URL"] || "http://localhost:3001/sse",
+      trustTier: "standard",
+      costPerCall: 0.01,
+      dataClassifications: ["pii"], // This server handles PII data
+      timeout: 30000,
+      enabled: !!process.env["SSE_SERVER_URL"], // Only enable in docker-compose
+    },
   ],
   policies: [
+    {
+      id: "block-admin-tools",
+      name: "Block Administrative Tools",
+      description: "Blocks all tools with 'admin' in the name for security",
+      priority: 100,
+      enabled: true,
+      conditions: [{ field: "tool.name", operator: "matches", value: "^admin_" }],
+      actions: ["deny"],
+    },
     {
       id: "block-untrusted-pii",
       name: "Block PII to Untrusted Tools",
       description: "Prevents PII data from being sent to untrusted tools",
-      priority: 100,
+      priority: 90,
       enabled: true,
       conditions: [
         { field: "tool.trustTier", operator: "eq", value: "untrusted" },
@@ -52,6 +91,7 @@ const config: MCPGatewayConfig = {
     maxRetries: 3,
     retryDelayMs: 1000,
     defaultTrustTier: "standard",
+    protocolVersion: "2025-11-25",
   },
   audit: {
     enabled: true,

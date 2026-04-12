@@ -96,6 +96,51 @@ export class MCPGateway {
   }
 
   /**
+   * Health check for the MCP gateway
+   * Returns a summary of connected servers and overall readiness.
+   */
+  getHealth(): {
+    status: "healthy" | "degraded" | "unhealthy";
+    servers: {
+      total: number;
+      connected: number;
+      disconnected: number;
+    };
+    tools: number;
+    policies: number;
+    auditRecords: number;
+    uptime: boolean;
+  } {
+    const stats = this.registry.getStats();
+    const connectedRatio =
+      stats.serverCount === 0
+        ? 1
+        : stats.connectedServers / stats.serverCount;
+
+    let status: "healthy" | "degraded" | "unhealthy";
+    if (stats.serverCount === 0 || connectedRatio === 1) {
+      status = "healthy";
+    } else if (connectedRatio > 0) {
+      status = "degraded";
+    } else {
+      status = "unhealthy";
+    }
+
+    return {
+      status,
+      servers: {
+        total: stats.serverCount,
+        connected: stats.connectedServers,
+        disconnected: stats.serverCount - stats.connectedServers,
+      },
+      tools: stats.toolCount,
+      policies: this.policies.size,
+      auditRecords: this.auditLog.length,
+      uptime: true,
+    };
+  }
+
+  /**
    * Call a tool with policy enforcement and arbitration
    */
   async callTool(request: ToolCallRequest): Promise<ToolCallResult> {
@@ -182,82 +227,118 @@ export class MCPGateway {
       return result;
     }
 
-    // Execute the tool call
-    try {
-      const client = this.registry.getClient(decision.selectedTool.serverId);
-      if (!client) {
-        throw new Error(
-          `Server not connected: ${decision.selectedTool.serverId}`,
+    // Execute the tool call with retry logic
+    const maxRetries = this.config.defaults.maxRetries ?? 0;
+    const retryDelayMs = this.config.defaults.retryDelayMs ?? 500;
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, retryDelayMs * attempt),
+          );
+          this.logger.debug(`Retrying tool call (attempt ${attempt + 1})`, {
+            traceId,
+            toolName: request.toolName,
+          });
+        }
+
+        const client = this.registry.getClient(decision.selectedTool.serverId);
+        if (!client) {
+          throw new Error(
+            `Server not connected: ${decision.selectedTool.serverId}`,
+          );
+        }
+
+        const result = await client.callTool(
+          decision.selectedTool.tool.name,
+          request.arguments,
         );
-      }
+        const latencyMs = Date.now() - startTime;
 
-      const result = await client.callTool(
-        decision.selectedTool.tool.name,
-        request.arguments,
-      );
-      const latencyMs = Date.now() - startTime;
-
-      // Update metrics
-      this.registry.updateToolMetrics(decision.selectedTool.id, {
-        latency: latencyMs,
-        success: true,
-      });
-
-      const toolResult: ToolCallResult = {
-        traceId,
-        success: true,
-        result: this.config.audit.includeResults ? result : undefined,
-        serverId: decision.selectedTool.serverId,
-        toolId: decision.selectedTool.id,
-        latencyMs,
-        cost: decision.estimatedCost || 0,
-        policyActions,
-        timestamp: new Date(),
-      };
-
-      auditRecord.result = toolResult;
-      this.recordAudit(auditRecord);
-
-      this.emitEvent({
-        type: "tool_called",
-        traceId,
-        toolId: decision.selectedTool.id,
-        success: true,
-      });
-
-      // Record successful result to OTel span
-      this.otel.recordToolCallResult(span, toolResult);
-      return toolResult;
-    } catch (error) {
-      const latencyMs = Date.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      // Update metrics
-      if (decision.selectedTool) {
+        // Update metrics
         this.registry.updateToolMetrics(decision.selectedTool.id, {
           latency: latencyMs,
-          success: false,
+          success: true,
+        });
+
+        const toolResult: ToolCallResult = {
+          traceId,
+          success: true,
+          result: this.config.audit.includeResults ? result : undefined,
+          serverId: decision.selectedTool.serverId,
+          toolId: decision.selectedTool.id,
+          latencyMs,
+          cost: decision.estimatedCost || 0,
+          policyActions,
+          timestamp: new Date(),
+        };
+
+        auditRecord.result = toolResult;
+        this.recordAudit(auditRecord);
+
+        this.emitEvent({
+          type: "tool_called",
+          traceId,
+          toolId: decision.selectedTool.id,
+          success: true,
+        });
+
+        // Record successful result to OTel span
+        this.otel.recordToolCallResult(span, toolResult);
+        return toolResult;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Only retry on transient errors (timeouts, connection errors)
+        const isTransient =
+          lastError.message.includes("timed out") ||
+          lastError.message.includes("ECONNREFUSED") ||
+          lastError.message.includes("ETIMEDOUT") ||
+          lastError.message.includes("connection error");
+
+        if (!isTransient || attempt >= maxRetries) {
+          break;
+        }
+
+        this.logger.warn(`Tool call failed (attempt ${attempt + 1}), retrying`, {
+          traceId,
+          error: lastError.message,
+          attemptsLeft: maxRetries - attempt,
         });
       }
-
-      this.emitEvent({
-        type: "tool_called",
-        traceId,
-        toolId: decision.selectedTool?.id || request.toolName,
-        success: false,
-      });
-
-      const result = this.createErrorResult(
-        traceId,
-        startTime,
-        errorMessage,
-        policyActions,
-        decision.selectedTool,
-      );
-      this.otel.recordToolCallResult(span, result);
-      return result;
     }
+
+    // All attempts failed
+    const latencyMs = Date.now() - startTime;
+    const errorMessage = lastError?.message || "Unknown error";
+
+    // Update metrics
+    if (decision.selectedTool) {
+      this.registry.updateToolMetrics(decision.selectedTool.id, {
+        latency: latencyMs,
+        success: false,
+        error: errorMessage,
+      });
+    }
+
+    this.emitEvent({
+      type: "tool_called",
+      traceId,
+      toolId: decision.selectedTool?.id || request.toolName,
+      success: false,
+    });
+
+    const result = this.createErrorResult(
+      traceId,
+      startTime,
+      errorMessage,
+      policyActions,
+      decision.selectedTool,
+    );
+    this.otel.recordToolCallResult(span, result);
+    return result;
   }
 
   /**

@@ -84,3 +84,35 @@ export type {
   SubscriptionManagerOptions,
   PaymentAPIOptions,
 } from "./payment/index.js";
+
+// MCP Gateway exports
+export {
+  MCPClient,
+  MCPToolRegistry,
+  MCPGateway,
+  MCPOTelInstrumentation,
+  createNoOpInstrumentation,
+} from "./mcp/index.js";
+
+export type {
+  OTelConfig,
+  MCPServerConfig,
+  MCPGatewayConfig,
+  MCPPolicy,
+  ToolCallRequest,
+  ToolCallResult,
+  ToolCallStreamEvent,
+  ArbitrationDecision,
+  AuditRecord,
+  RegisteredTool,
+  RegisteredResource,
+  RegisteredPrompt,
+  ToolRegistry,
+  MCPServerConnection,
+  MCPGatewayEvent,
+  DataClassification,
+  MCPProtocolVersion,
+  PolicyAction,
+  PolicyCondition,
+  PolicyActionType,
+} from "./mcp/index.js";
