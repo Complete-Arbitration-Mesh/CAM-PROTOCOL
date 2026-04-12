@@ -29,7 +29,7 @@ and adds comprehensive test coverage for the MCP module.
 
 ### Tests
 
-322 tests passing (+91 new), 4 skipped (spawn-dependent integration), 0 failing.
+321 tests passing (+91 new), 4 skipped (spawn-dependent integration), 0 failing.
 
 New test files:
 - `tests/mcp/client.test.ts` — 42 tests: transport creation, discovery (tools/resources/prompts), callTool error classification, timeout wrapping, connection state
