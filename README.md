@@ -5,11 +5,11 @@
   <h3>Complete Arbitration Mesh (CAM) Protocol</h3>
 
   [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-  [![Version](https://img.shields.io/badge/Version-2.1.1-brightgreen.svg)](docs/RELEASE_NOTES.md)
+  [![Version](https://img.shields.io/badge/Version-2.1.2-brightgreen.svg)](CHANGELOG.md)
   [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](CHANGELOG.md)
   [![Compliance](https://img.shields.io/badge/Compliance-GDPR%20|%20CCPA-green.svg)](docs/legal/COMPLIANCE_CHECKLIST.md)
   [![Build Status](https://img.shields.io/github/workflow/status/Complete-Arbitration-Mesh/CAM-PROTOCOL/Continuous%20Integration?branch=main)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
-  [![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen.svg)](./badges/coverage-statements.svg)
+  [![Coverage](https://img.shields.io/badge/coverage-88%25-brightgreen.svg)](CHANGELOG.md)
   [![SBOM](https://img.shields.io/badge/SBOM-CycloneDX-orange)](https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/actions/workflows/ci.yml)
 
   **Intelligent Orchestration and Collaboration for Modern AI Ecosystems**
@@ -18,7 +18,7 @@
 </div>
 
 
-**Production Status:** CAM Protocol is **production ready** as of the [v2.0.0 release](CHANGELOG.md) on May 28, 2025. The [v2.1.0 release](CHANGELOG.md) adds official SDK integrations, response caching, streaming support, rate limiting, and **MCP Gateway** integration.
+**Production Status:** CAM Protocol is **production ready** as of the [v2.0.0 release](CHANGELOG.md) on May 28, 2025. The [v2.1.2 release](CHANGELOG.md) adds official SDK integrations, response caching, streaming support, rate limiting, a production-ready **MCP Gateway** with policy enforcement, retry logic, health checks, and OpenTelemetry instrumentation.
 
 **Security Status:** Core security hardening complete. See [Security Checklist](docs/security/SECURITY_CHECKLIST.md) for current status. Report vulnerabilities to [edwardstechpros@outlook.com](mailto:edwardstechpros@outlook.com).
 
@@ -58,7 +58,7 @@ Organizations face evolving challenges in the AI space:
 - **Secure Inter-Agent Messaging** - Enable protected agent communication
 - **Collaboration Marketplace** - Access specialized agent capabilities
 
-## 🔌 MCP Gateway Mode (Preview)
+## 🔌 MCP Gateway
 
 CAM integrates with [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) as a **governance layer** that sits above MCP servers, providing policy enforcement, intelligent routing, and audit capabilities.
 
