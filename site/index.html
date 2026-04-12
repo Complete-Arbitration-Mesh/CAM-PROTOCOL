@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAM-PROTOCOL — MCP Governance for Production</title>
+  <meta name="description" content="Policy enforcement, audit logging, and access control for Model Context Protocol. Embed governance directly in your MCP gateway. Open-source. Apache-2.0.">
+  <meta property="og:title" content="CAM-PROTOCOL — MCP Governance for Production">
+  <meta property="og:description" content="Policy enforcement, audit logging, and access control for Model Context Protocol. Open-source. Self-hosted. No vendor lock-in.">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Stripe JS — loaded before DOM ready so it's available on click -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cam: {
+              50:  '#f0f9ff',
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e'
+            }
+          },
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-hero {
+      background: linear-gradient(135deg, #0c4a6e 0%, #1e293b 55%, #0f172a 100%);
+    }
+    .code-block {
+      background: #0d1117;
+      border: 1px solid #21262d;
+    }
+    .token-comment  { color: #8b949e; }
+    .token-keyword  { color: #ff7b72; }
+    .token-string   { color: #a5d6ff; }
+    .token-class    { color: #ffa657; }
+    .token-prop     { color: #79c0ff; }
+    .token-value    { color: #a5d6ff; }
+    .token-number   { color: #79c0ff; }
+    .token-plain    { color: #e6edf3; }
+    /* Smooth scroll */
+    html { scroll-behavior: smooth; }
+    /* Focus visible for keyboard nav */
+    :focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+    /* Prevent layout shift on code blocks */
+    pre { white-space: pre; overflow-x: auto; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 antialiased">
+
+  <!-- ============================================================
+       NAVIGATION
+  ============================================================ -->
+  <nav class="sticky top-0 z-50 bg-slate-950/90 backdrop-blur border-b border-slate-800" aria-label="Main navigation">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+      <a href="#" class="font-bold text-lg text-white tracking-tight" aria-label="CAM-PROTOCOL home">
+        CAM<span class="text-cam-500">-</span>PROTOCOL
+      </a>
+      <div class="flex items-center gap-1 sm:gap-4 text-sm">
+        <a href="#problem"  class="hidden sm:block text-slate-400 hover:text-white transition-colors px-2 py-1">Problem</a>
+        <a href="#features" class="hidden sm:block text-slate-400 hover:text-white transition-colors px-2 py-1">Features</a>
+        <a href="#pricing"  class="hidden sm:block text-slate-400 hover:text-white transition-colors px-2 py-1">Pricing</a>
+        <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL"
+           class="text-slate-400 hover:text-white transition-colors px-2 py-1"
+           target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="#pricing"
+           class="ml-2 bg-cam-600 hover:bg-cam-700 text-white text-xs sm:text-sm font-semibold px-3 py-1.5 rounded-md transition-colors">
+          Get Pro
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       HERO
+  ============================================================ -->
+  <header class="gradient-hero">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 pt-20 pb-24 text-center">
+      <div class="inline-flex items-center gap-2 bg-slate-800/60 border border-slate-700 rounded-full px-3 py-1 text-xs text-slate-300 mb-8">
+        <span class="w-1.5 h-1.5 bg-green-400 rounded-full" aria-hidden="true"></span>
+        v2.1.2 — Production Ready &middot; Apache-2.0
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+        MCP Governance<br>
+        <span class="text-cam-400">for Production</span>
+      </h1>
+
+      <p class="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
+        Policy enforcement, audit logging, and access control for Model Context Protocol.
+        Embed governance directly in your MCP gateway — no proxy, no infrastructure overhead.
+      </p>
+
+      <!-- npm install one-liner -->
+      <div class="flex items-center justify-center gap-2 mb-8">
+        <div class="code-block rounded-lg px-5 py-3 font-mono text-sm text-cam-400 select-all"
+             role="textbox" aria-label="npm install command" aria-readonly="true">
+          npm install @cam-protocol/complete-arbitration-mesh
+        </div>
+      </div>
+
+      <!-- Dual CTA -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="#quickstart"
+           class="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-900 px-7 py-3 rounded-lg font-semibold text-sm transition-colors">
+          Get Started Free
+        </a>
+        <button id="hero-pro-btn"
+                class="w-full sm:w-auto bg-cam-600 hover:bg-cam-700 text-white px-7 py-3 rounded-lg font-semibold text-sm transition-colors">
+          Get Pro — $99/mo
+        </button>
+      </div>
+
+      <p class="mt-4 text-slate-500 text-xs">Community edition is free forever. Pro adds Redis, rate limiting, JSONL audit, and OTel.</p>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       SOCIAL PROOF BAR
+  ============================================================ -->
+  <div class="bg-slate-900 border-y border-slate-800 py-5">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <dl class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+        <div>
+          <dt class="text-2xl font-bold text-white">321</dt>
+          <dd class="text-slate-500 text-xs mt-0.5">Tests passing</dd>
+        </div>
+        <div>
+          <dt class="text-2xl font-bold text-white">88%</dt>
+          <dd class="text-slate-500 text-xs mt-0.5">MCP gateway coverage</dd>
+        </div>
+        <div>
+          <dt class="text-2xl font-bold text-white">v2.1.2</dt>
+          <dd class="text-slate-500 text-xs mt-0.5">Current release</dd>
+        </div>
+        <div>
+          <dt class="text-2xl font-bold text-white">Apache-2.0</dt>
+          <dd class="text-slate-500 text-xs mt-0.5">Open source core</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PROBLEM
+  ============================================================ -->
+  <section id="problem" class="max-w-6xl mx-auto px-4 sm:px-6 py-20">
+    <div class="max-w-3xl mx-auto text-center mb-14">
+      <h2 class="text-3xl font-bold mb-4">MCP executes tool calls with zero native governance</h2>
+      <p class="text-slate-400">
+        Model Context Protocol connects AI agents to databases, APIs, and infrastructure.
+        Every tool call is a production-impacting operation. The spec provides no audit trail,
+        no access control, and no rate limiting — that gap is already being exploited.
+      </p>
+    </div>
+
+    <!-- Real incident callouts -->
+    <div class="grid sm:grid-cols-2 gap-6 mb-14">
+      <div class="bg-red-950/30 border border-red-900/50 rounded-lg p-6">
+        <div class="flex items-start gap-3">
+          <span class="text-red-400 text-lg font-bold mt-0.5" aria-hidden="true">!</span>
+          <div>
+            <h3 class="font-semibold text-red-300 mb-1">Supabase / Cursor prompt injection</h3>
+            <p class="text-slate-400 text-sm">
+              Attackers embedded prompt injection instructions inside Supabase support tickets.
+              Cursor's MCP integration executed the injected instructions and exfiltrated
+              integration tokens — a real breach, documented publicly in early 2025.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-red-950/30 border border-red-900/50 rounded-lg p-6">
+        <div class="flex items-start gap-3">
+          <span class="text-red-400 text-lg font-bold mt-0.5" aria-hidden="true">!</span>
+          <div>
+            <h3 class="font-semibold text-red-300 mb-1">GitHub MCP private repo exfiltration</h3>
+            <p class="text-slate-400 text-sm">
+              Researchers demonstrated that malicious instructions in public GitHub issue bodies
+              caused MCP-connected agents to read and exfiltrate content from private repositories
+              the user had authorized. No jailbreak required — just a crafted issue.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Four gaps -->
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="bg-slate-900 border border-slate-800 rounded-lg p-6">
+        <div class="text-red-400 font-semibold mb-2 text-sm uppercase tracking-wide">No Audit Trail</div>
+        <p class="text-slate-400 text-sm">
+          Your SOC 2 auditor asks "show me every tool call an AI agent made against customer data
+          last quarter." With bare MCP, you have nothing.
+        </p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-lg p-6">
+        <div class="text-red-400 font-semibold mb-2 text-sm uppercase tracking-wide">No Policy Engine</div>
+        <p class="text-slate-400 text-sm">
+          Every MCP server accepts every call from every agent. No trust tiers, no tool-level
+          allow/deny rules, no data classification gates.
+        </p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-lg p-6">
+        <div class="text-red-400 font-semibold mb-2 text-sm uppercase tracking-wide">No Rate Limiting</div>
+        <p class="text-slate-400 text-sm">
+          A runaway agent can hammer your production API with unlimited tool calls.
+          No circuit breakers. No per-tenant backpressure. No cost control.
+        </p>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-lg p-6">
+        <div class="text-red-400 font-semibold mb-2 text-sm uppercase tracking-wide">No Access Control</div>
+        <p class="text-slate-400 text-sm">
+          One unguarded <code class="bg-slate-800 text-slate-300 px-1 py-0.5 rounded text-xs">kubectl delete</code>
+          from an AI agent is a production outage. MCP has no capability-based trust model.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FEATURES GRID
+  ============================================================ -->
+  <section id="features" class="bg-slate-900/40 border-y border-slate-800 py-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-bold mb-4">What CAM-PROTOCOL adds</h2>
+        <p class="text-slate-400 max-w-2xl mx-auto">
+          An embeddable governance layer that sits above your MCP servers.
+          One API surface. Every tool call policy-enforced, rate-limited, and audit-logged.
+        </p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+
+        <!-- Gateway -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+          <div class="w-10 h-10 bg-cam-900/50 border border-cam-800/50 rounded-lg flex items-center justify-center mb-5" aria-hidden="true">
+            <svg class="w-5 h-5 text-cam-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-cam-400 font-semibold mb-1">MCP Gateway</h3>
+          <p class="text-slate-500 text-sm mb-5">Smart routing across multiple MCP servers with full fault tolerance.</p>
+          <ul class="space-y-2.5 text-sm text-slate-300" role="list">
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Smart routing across multiple MCP servers
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Health checks with degraded/unhealthy detection
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Configurable retry logic with backoff
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              stdio and SSE transport support
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Streaming tool call responses
+            </li>
+          </ul>
+        </div>
+
+        <!-- Policy Engine -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+          <div class="w-10 h-10 bg-cam-900/50 border border-cam-800/50 rounded-lg flex items-center justify-center mb-5" aria-hidden="true">
+            <svg class="w-5 h-5 text-cam-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3 class="text-cam-400 font-semibold mb-1">Policy Engine</h3>
+          <p class="text-slate-500 text-sm mb-5">Declarative allow/deny rules evaluated before every tool call.</p>
+          <ul class="space-y-2.5 text-sm text-slate-300" role="list">
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Trust tiers: untrusted, standard, trusted, privileged
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Per-tool allow/deny rules with regex matching
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Rate limiting per tenant (Pro)
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Data classification gates: PII, PHI, confidential
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Priority-ordered rule evaluation
+            </li>
+          </ul>
+        </div>
+
+        <!-- Audit Trail -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+          <div class="w-10 h-10 bg-cam-900/50 border border-cam-800/50 rounded-lg flex items-center justify-center mb-5" aria-hidden="true">
+            <svg class="w-5 h-5 text-cam-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-cam-400 font-semibold mb-1">Audit Trail</h3>
+          <p class="text-slate-500 text-sm mb-5">Structured records for every tool call — every decision, every outcome.</p>
+          <ul class="space-y-2.5 text-sm text-slate-300" role="list">
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              JSONL file export with trace IDs (Pro)
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Stdout structured JSON for log aggregation
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              OpenTelemetry traces (Grafana, Datadog) (Pro)
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Signed audit records with chain-of-custody (Enterprise)
+            </li>
+            <li class="flex gap-2">
+              <span class="text-cam-500 mt-0.5 shrink-0" aria-hidden="true">&#10003;</span>
+              Configurable retention and argument redaction
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Architecture diagram (text-based, zero layout shift) -->
+      <div class="mt-14 max-w-2xl mx-auto">
+        <p class="text-slate-500 text-xs text-center mb-4 uppercase tracking-widest">How it fits</p>
+        <div class="code-block rounded-xl p-6 font-mono text-xs text-slate-400 leading-relaxed" aria-label="Architecture diagram showing CAM gateway between AI application and MCP servers">
+          <div class="text-center text-slate-300 mb-1">Your AI Application</div>
+          <div class="text-center text-slate-600 mb-1">|</div>
+          <div class="text-center text-slate-600 mb-1">v  Single API</div>
+          <div class="text-center mb-1">
+            <span class="text-cam-500 font-semibold">CAM MCP Gateway</span>
+            <span class="text-slate-600"> — policies | arbitration | audit</span>
+          </div>
+          <div class="text-center text-slate-600 mb-1">|</div>
+          <div class="flex justify-center gap-6 text-slate-400">
+            <span>MCP Server A<br><span class="text-slate-600 text-xs">(filesystem)</span></span>
+            <span>MCP Server B<br><span class="text-slate-600 text-xs">(database)</span></span>
+            <span>MCP Server C<br><span class="text-slate-600 text-xs">(web search)</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       QUICK START
+  ============================================================ -->
+  <section id="quickstart" class="max-w-4xl mx-auto px-4 sm:px-6 py-20">
+    <div class="text-center mb-10">
+      <h2 class="text-3xl font-bold mb-4">Up and running in 5 minutes</h2>
+      <p class="text-slate-400">
+        Community edition works out of the box — no license key, no sign-up.
+      </p>
+    </div>
+
+    <div class="code-block rounded-xl overflow-hidden" role="region" aria-label="Quick start code example">
+      <!-- Step 1: Install -->
+      <div class="border-b border-slate-800 px-5 py-3 flex items-center gap-2">
+        <div class="flex gap-1.5" aria-hidden="true">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500/60"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500/60"></span>
+        </div>
+        <span class="text-slate-500 text-xs ml-2">gateway.ts</span>
+      </div>
+      <pre class="p-6 text-sm leading-relaxed overflow-x-auto"><code><span class="token-comment">// 1. Install</span>
+<span class="token-comment">// npm install @cam-protocol/complete-arbitration-mesh</span>
+
+<span class="token-keyword">import</span> <span class="token-plain">{ MCPGateway }</span> <span class="token-keyword">from</span> <span class="token-string">'@cam-protocol/complete-arbitration-mesh/mcp'</span><span class="token-plain">;</span>
+
+<span class="token-comment">// 2. Configure the gateway with your MCP servers and policies</span>
+<span class="token-keyword">const</span> <span class="token-prop">gateway</span> <span class="token-plain">= </span><span class="token-keyword">new</span> <span class="token-class">MCPGateway</span><span class="token-plain">({</span>
+  <span class="token-prop">servers</span><span class="token-plain">: [</span>
+    <span class="token-plain">{ </span><span class="token-prop">id</span><span class="token-plain">: </span><span class="token-string">'db'</span><span class="token-plain">, </span><span class="token-prop">name</span><span class="token-plain">: </span><span class="token-string">'database'</span><span class="token-plain">, </span><span class="token-prop">transport</span><span class="token-plain">: </span><span class="token-string">'stdio'</span><span class="token-plain">, </span><span class="token-prop">command</span><span class="token-plain">: </span><span class="token-string">'mcp-server-db'</span><span class="token-plain">, </span><span class="token-prop">trustTier</span><span class="token-plain">: </span><span class="token-string">'trusted'</span><span class="token-plain">, </span><span class="token-prop">enabled</span><span class="token-plain">: </span><span class="token-keyword">true</span> <span class="token-plain">},</span>
+    <span class="token-plain">{ </span><span class="token-prop">id</span><span class="token-plain">: </span><span class="token-string">'web'</span><span class="token-plain">, </span><span class="token-prop">name</span><span class="token-plain">: </span><span class="token-string">'websearch'</span><span class="token-plain">, </span><span class="token-prop">transport</span><span class="token-plain">: </span><span class="token-string">'sse'</span><span class="token-plain">, </span><span class="token-prop">endpoint</span><span class="token-plain">: </span><span class="token-string">'http://localhost:3001'</span><span class="token-plain">, </span><span class="token-prop">trustTier</span><span class="token-plain">: </span><span class="token-string">'standard'</span><span class="token-plain">, </span><span class="token-prop">enabled</span><span class="token-plain">: </span><span class="token-keyword">true</span> <span class="token-plain">},</span>
+  <span class="token-plain">],</span>
+  <span class="token-prop">policies</span><span class="token-plain">: [{</span>
+    <span class="token-prop">id</span><span class="token-plain">: </span><span class="token-string">'no-pii-external'</span><span class="token-plain">, </span><span class="token-prop">name</span><span class="token-plain">: </span><span class="token-string">'Block PII to external tools'</span><span class="token-plain">, </span><span class="token-prop">priority</span><span class="token-plain">: </span><span class="token-number">100</span><span class="token-plain">, </span><span class="token-prop">enabled</span><span class="token-plain">: </span><span class="token-keyword">true</span><span class="token-plain">,</span>
+    <span class="token-prop">conditions</span><span class="token-plain">: [{ </span><span class="token-prop">field</span><span class="token-plain">: </span><span class="token-string">'tool.dataClassifications'</span><span class="token-plain">, </span><span class="token-prop">operator</span><span class="token-plain">: </span><span class="token-string">'contains'</span><span class="token-plain">, </span><span class="token-prop">value</span><span class="token-plain">: </span><span class="token-string">'pii'</span> <span class="token-plain">}],</span>
+    <span class="token-prop">actions</span><span class="token-plain">: [</span><span class="token-string">'deny'</span><span class="token-plain">],</span>
+  <span class="token-plain">}],</span>
+  <span class="token-prop">defaults</span><span class="token-plain">: { </span><span class="token-prop">timeout</span><span class="token-plain">: </span><span class="token-number">30000</span><span class="token-plain">, </span><span class="token-prop">maxRetries</span><span class="token-plain">: </span><span class="token-number">3</span><span class="token-plain">, </span><span class="token-prop">retryDelayMs</span><span class="token-plain">: </span><span class="token-number">1000</span><span class="token-plain">, </span><span class="token-prop">defaultTrustTier</span><span class="token-plain">: </span><span class="token-string">'standard'</span> <span class="token-plain">},</span>
+  <span class="token-prop">audit</span><span class="token-plain">: { </span><span class="token-prop">enabled</span><span class="token-plain">: </span><span class="token-keyword">true</span><span class="token-plain">, </span><span class="token-prop">retentionDays</span><span class="token-plain">: </span><span class="token-number">30</span><span class="token-plain">, </span><span class="token-prop">includeArguments</span><span class="token-plain">: </span><span class="token-keyword">true</span> <span class="token-plain">},</span>
+<span class="token-plain">});</span>
+
+<span class="token-keyword">await</span> <span class="token-prop">gateway</span><span class="token-plain">.initialize();</span>
+
+<span class="token-comment">// 3. Every tool call is now policy-enforced, rate-limited, and audit-logged</span>
+<span class="token-keyword">const</span> <span class="token-prop">result</span> <span class="token-plain">= </span><span class="token-keyword">await</span> <span class="token-prop">gateway</span><span class="token-plain">.callTool({ </span><span class="token-prop">toolName</span><span class="token-plain">: </span><span class="token-string">'search'</span><span class="token-plain">, </span><span class="token-prop">arguments</span><span class="token-plain">: { </span><span class="token-prop">query</span><span class="token-plain">: </span><span class="token-string">'...'</span> <span class="token-plain">}, </span><span class="token-prop">tenantId</span><span class="token-plain">: </span><span class="token-string">'my-app'</span> <span class="token-plain">});</span>
+<span class="token-plain">console.</span><span class="token-prop">log</span><span class="token-plain">(</span><span class="token-prop">result</span><span class="token-plain">.</span><span class="token-prop">traceId</span><span class="token-plain">);   </span><span class="token-comment">// Audit trace</span>
+<span class="token-plain">console.</span><span class="token-prop">log</span><span class="token-plain">(</span><span class="token-prop">result</span><span class="token-plain">.</span><span class="token-prop">serverId</span><span class="token-plain">);  </span><span class="token-comment">// Which MCP server handled it</span></code></pre>
+    </div>
+
+    <div class="mt-6 flex flex-col sm:flex-row items-center gap-4 justify-center">
+      <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/blob/main/docs/mcp/MCP-GATEWAY-v0.1.md"
+         target="_blank" rel="noopener noreferrer"
+         class="text-cam-400 hover:text-cam-300 text-sm transition-colors">
+        Full gateway docs &rarr;
+      </a>
+      <span class="text-slate-700 hidden sm:block" aria-hidden="true">&middot;</span>
+      <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/tree/main/examples/mcp-gateway"
+         target="_blank" rel="noopener noreferrer"
+         class="text-cam-400 hover:text-cam-300 text-sm transition-colors">
+        Working example &rarr;
+      </a>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       PRICING
+  ============================================================ -->
+  <section id="pricing" class="bg-slate-900/40 border-y border-slate-800 py-20">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="text-center mb-14">
+        <h2 class="text-3xl font-bold mb-4">Simple, transparent pricing</h2>
+        <p class="text-slate-400">Start free. Upgrade when you need Redis, rate limiting, audit export, or OTel.</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
+
+        <!-- Community -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-1">Community</h3>
+            <div class="text-4xl font-bold mb-1">Free</div>
+            <div class="text-slate-500 text-sm">Apache-2.0 forever</div>
+          </div>
+          <ul class="space-y-2.5 text-sm text-slate-300 mb-8" role="list" aria-label="Community edition features">
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Core routing engine</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Basic MCP Gateway</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Allow/deny policy rules</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Console logging</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Single-tenant mode</li>
+            <li class="flex gap-2"><span class="text-slate-600 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span><span class="text-slate-500">Community support (GitHub Issues)</span></li>
+          </ul>
+          <div class="bg-slate-800/80 rounded-lg px-4 py-3 font-mono text-xs text-center text-cam-400 break-all">
+            npm install @cam-protocol/complete-arbitration-mesh
+          </div>
+        </div>
+
+        <!-- Pro (featured) -->
+        <div class="bg-slate-900 border-2 border-cam-600 rounded-xl p-8 relative shadow-lg shadow-cam-900/20" aria-label="Pro edition — recommended">
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-cam-600 text-white text-xs font-semibold px-4 py-1 rounded-full">
+            Most Popular
+          </div>
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-1">Pro</h3>
+            <div class="text-4xl font-bold mb-1">$99<span class="text-lg text-slate-400 font-normal">/mo</span></div>
+            <div class="text-slate-500 text-sm">For teams shipping MCP to production</div>
+          </div>
+          <ul class="space-y-2.5 text-sm text-slate-300 mb-8" role="list" aria-label="Pro edition features">
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Everything in Community</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Redis caching for high performance</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Rate limiting per user/tenant</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>JSONL audit trail export</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>OpenTelemetry (Grafana, Datadog)</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Multi-tenant namespace isolation</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Advanced policy engine</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Email support (business hours)</li>
+            <li class="flex gap-2"><span class="text-cam-400 shrink-0 mt-0.5" aria-hidden="true">+</span><span class="text-cam-400">14-day trial — email us</span></li>
+          </ul>
+          <button id="pro-btn"
+                  class="w-full bg-cam-600 hover:bg-cam-700 text-white py-3 rounded-lg font-semibold text-sm transition-colors focus-visible:ring-2 focus-visible:ring-cam-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+            Get Pro — $99/mo
+          </button>
+          <p class="text-slate-600 text-xs text-center mt-3">Billed monthly. Cancel anytime.</p>
+        </div>
+
+        <!-- Enterprise -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-8">
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold mb-1">Enterprise</h3>
+            <div class="text-4xl font-bold mb-1">Custom</div>
+            <div class="text-slate-500 text-sm">For compliance-driven organizations</div>
+          </div>
+          <ul class="space-y-2.5 text-sm text-slate-300 mb-8" role="list" aria-label="Enterprise edition features">
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Everything in Pro</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>SSO/SAML authentication</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Role-based access control (RBAC)</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Signed audit records</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Cloud export (S3 / Azure Blob)</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>SLA dashboard</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>Dedicated support engineer</li>
+            <li class="flex gap-2"><span class="text-green-400 shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>On-premise deployment</li>
+          </ul>
+          <a href="mailto:EdwardsTechPros@Outlook.com?subject=CAM-PROTOCOL%20Enterprise%20Inquiry&body=I%27d%20like%20to%20discuss%20Enterprise%20pricing.%0A%0AOrg%3A%20%0ATeam%20size%3A%20%0AMCP%20servers%20in%20use%3A%20%0ACompliance%20requirements%3A%20"
+             class="block w-full text-center border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white py-3 rounded-lg font-semibold text-sm transition-colors">
+            Contact Sales
+          </a>
+        </div>
+
+      </div>
+
+      <p class="text-center text-slate-600 text-sm mt-10">
+        Questions? Email
+        <a href="mailto:EdwardsTechPros@Outlook.com" class="text-slate-500 hover:text-slate-300 transition-colors">EdwardsTechPros@Outlook.com</a>
+        or open a
+        <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/issues" target="_blank" rel="noopener noreferrer" class="text-slate-500 hover:text-slate-300 transition-colors">GitHub issue</a>.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       FOOTER
+  ============================================================ -->
+  <footer class="border-t border-slate-800 py-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="text-center md:text-left">
+        <div class="font-semibold text-white mb-1">CAM-PROTOCOL</div>
+        <div class="text-slate-500 text-sm">
+          Built by <a href="mailto:EdwardsTechPros@Outlook.com" class="hover:text-slate-300 transition-colors">Edwards Tech Innovation</a>.
+          Community edition Apache-2.0.
+        </div>
+      </div>
+      <nav class="flex flex-wrap justify-center gap-6 text-sm" aria-label="Footer navigation">
+        <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL"
+           target="_blank" rel="noopener noreferrer"
+           class="text-slate-500 hover:text-white transition-colors">
+          GitHub
+        </a>
+        <a href="https://www.npmjs.com/package/@cam-protocol/complete-arbitration-mesh"
+           target="_blank" rel="noopener noreferrer"
+           class="text-slate-500 hover:text-white transition-colors">
+          npm
+        </a>
+        <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/issues"
+           target="_blank" rel="noopener noreferrer"
+           class="text-slate-500 hover:text-white transition-colors">
+          Support
+        </a>
+        <a href="mailto:EdwardsTechPros@Outlook.com"
+           class="text-slate-500 hover:text-white transition-colors">
+          Contact
+        </a>
+      </nav>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       STRIPE CHECKOUT
+       Dru: Fill in STRIPE_PK and STRIPE_PRICE_ID before going live.
+       Steps:
+         1. dashboard.stripe.com -> Products -> Create Product
+            Name: "CAM-PROTOCOL Pro", Price: $99/month recurring
+         2. Copy publishable key (pk_live_...) from dashboard.stripe.com/apikeys
+         3. Copy price ID (price_...) from the product you just created
+         4. Replace the two placeholder values below
+  ============================================================ -->
+  <script>
+    // ============================================================
+    // REPLACE THESE TWO VALUES — see instructions above
+    // ============================================================
+    const STRIPE_PK       = 'pk_live_REPLACE_ME';   // Your Stripe publishable key
+    const STRIPE_PRICE_ID = 'price_REPLACE_ME';      // Your Stripe price ID ($99/mo)
+    // ============================================================
+
+    const PLACEHOLDERS_ACTIVE = STRIPE_PK.includes('REPLACE') || STRIPE_PRICE_ID.includes('REPLACE');
+
+    async function handleProCheckout() {
+      if (PLACEHOLDERS_ACTIVE) {
+        // Stripe not yet configured — fall back to email
+        window.location.href =
+          'mailto:EdwardsTechPros@Outlook.com'
+          + '?subject=CAM-PROTOCOL%20Pro%20Subscription'
+          + '&body=Hi%2C%20I%27d%20like%20to%20subscribe%20to%20CAM-PROTOCOL%20Pro%20(%2499%2Fmo).%0A%0AOrg%3A%20%0AUse%20case%3A%20';
+        return;
+      }
+
+      const btn = document.getElementById('pro-btn');
+      if (btn) {
+        btn.textContent = 'Redirecting...';
+        btn.disabled = true;
+      }
+
+      try {
+        const stripe = Stripe(STRIPE_PK);
+        const { error } = await stripe.redirectToCheckout({
+          lineItems: [{ price: STRIPE_PRICE_ID, quantity: 1 }],
+          mode: 'subscription',
+          successUrl: window.location.origin + '/success',
+          cancelUrl:  window.location.origin + '/#pricing',
+        });
+        if (error) {
+          console.error('Stripe error:', error.message);
+          if (btn) { btn.textContent = 'Get Pro — $99/mo'; btn.disabled = false; }
+        }
+      } catch (err) {
+        console.error('Checkout failed:', err);
+        if (btn) { btn.textContent = 'Get Pro — $99/mo'; btn.disabled = false; }
+      }
+    }
+
+    // Wire both Pro buttons
+    ['pro-btn', 'hero-pro-btn'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('click', handleProCheckout);
+    });
+  </script>
+
+</body>
+</html>

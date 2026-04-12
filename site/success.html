@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to CAM-PROTOCOL Pro</title>
+  <meta name="robots" content="noindex, nofollow">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cam: {
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :focus-visible { outline: 2px solid #0ea5e9; outline-offset: 2px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center px-4">
+
+  <main class="max-w-lg w-full text-center" aria-labelledby="success-heading">
+
+    <!-- Success checkmark -->
+    <div class="w-20 h-20 bg-green-500/10 border border-green-500/30 rounded-full flex items-center justify-center mx-auto mb-8"
+         role="img" aria-label="Success checkmark">
+      <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+    </div>
+
+    <h1 id="success-heading" class="text-3xl font-bold mb-3">You're in. Welcome to Pro.</h1>
+    <p class="text-slate-400 mb-10">
+      Your subscription is active. Your license key is on its way to the email address
+      you used at checkout — usually within a few minutes.
+    </p>
+
+    <!-- Next steps -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 text-left mb-8">
+      <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-4">Activate Pro in 3 steps</h2>
+      <ol class="space-y-4" aria-label="Activation steps">
+        <li class="flex gap-4">
+          <span class="flex-none w-7 h-7 bg-cam-900/50 border border-cam-800/50 rounded-full flex items-center justify-center text-cam-400 text-xs font-bold" aria-hidden="true">1</span>
+          <div>
+            <p class="text-sm text-slate-200 font-medium">Check your email for the license key</p>
+            <p class="text-xs text-slate-500 mt-0.5">Check spam if you don't see it within 5 minutes. Email <a href="mailto:EdwardsTechPros@Outlook.com" class="text-cam-400 hover:text-cam-300 transition-colors">EdwardsTechPros@Outlook.com</a> if it doesn't arrive.</p>
+          </div>
+        </li>
+        <li class="flex gap-4">
+          <span class="flex-none w-7 h-7 bg-cam-900/50 border border-cam-800/50 rounded-full flex items-center justify-center text-cam-400 text-xs font-bold" aria-hidden="true">2</span>
+          <div>
+            <p class="text-sm text-slate-200 font-medium">Set the environment variable</p>
+            <div class="mt-2 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 font-mono text-xs text-cam-400 select-all">
+              export CAM_LICENSE_KEY="your-license-key-here"
+            </div>
+          </div>
+        </li>
+        <li class="flex gap-4">
+          <span class="flex-none w-7 h-7 bg-cam-900/50 border border-cam-800/50 rounded-full flex items-center justify-center text-cam-400 text-xs font-bold" aria-hidden="true">3</span>
+          <div>
+            <p class="text-sm text-slate-200 font-medium">Restart your gateway</p>
+            <p class="text-xs text-slate-500 mt-0.5">Pro features (Redis caching, rate limiting, JSONL audit, OTel) activate automatically on startup.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Verify snippet -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-left mb-8">
+      <p class="text-xs text-slate-500 mb-3 uppercase tracking-wide">Verify your edition</p>
+      <pre class="font-mono text-xs text-slate-300 overflow-x-auto"><code>import { licenseManager } from '@cam-protocol/complete-arbitration-mesh';
+console.log(licenseManager.getEdition()); // 'pro'</code></pre>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="https://github.com/Complete-Arbitration-Mesh/CAM-PROTOCOL/blob/main/docs/mcp/MCP-GATEWAY-v0.1.md"
+         target="_blank" rel="noopener noreferrer"
+         class="bg-cam-600 hover:bg-cam-700 text-white px-6 py-3 rounded-lg font-semibold text-sm transition-colors">
+        Read the docs
+      </a>
+      <a href="mailto:EdwardsTechPros@Outlook.com?subject=CAM-PROTOCOL%20Pro%20Support"
+         class="border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white px-6 py-3 rounded-lg font-semibold text-sm transition-colors">
+        Contact support
+      </a>
+    </div>
+
+    <p class="mt-10 text-slate-600 text-xs">
+      <a href="/" class="hover:text-slate-400 transition-colors">Back to cam-protocol.dev</a>
+    </p>
+
+  </main>
+
+</body>
+</html>
