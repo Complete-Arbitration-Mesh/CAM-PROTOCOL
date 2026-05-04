@@ -32,50 +32,79 @@ export class PaymentAPI {
   }
 
   /**
+   * API key authentication preHandler — requires X-API-Key header matching
+   * the PAYMENT_API_KEY environment variable.
+   */
+  private async requireApiKey(
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ): Promise<void> {
+    const expected = process.env["PAYMENT_API_KEY"];
+    if (!expected) {
+      this.logger.error("PAYMENT_API_KEY env var not set — rejecting all payment requests");
+      reply.code(503).send({ error: "Payment API not configured" });
+      return;
+    }
+    const provided = request.headers["x-api-key"];
+    if (provided !== expected) {
+      reply.code(401).send({ error: "Invalid or missing API key" });
+      return;
+    }
+  }
+
+  /**
    * Register the payment API routes with a Fastify instance
    */
   registerRoutes(fastify: FastifyInstance): void {
+    const auth = { preHandler: this.requireApiKey.bind(this) };
+
     // Customer endpoints
-    fastify.post("/api/payment/customers", this.createCustomer.bind(this));
-    fastify.get("/api/payment/customers/:id", this.getCustomer.bind(this));
+    fastify.post("/api/payment/customers", auth, this.createCustomer.bind(this));
+    fastify.get("/api/payment/customers/:id", auth, this.getCustomer.bind(this));
 
     // Subscription endpoints
     fastify.get(
       "/api/payment/subscriptions/:id",
+      auth,
       this.getSubscription.bind(this),
     );
     fastify.post(
       "/api/payment/subscriptions",
+      auth,
       this.createSubscription.bind(this),
     );
     fastify.put(
       "/api/payment/subscriptions/:id",
+      auth,
       this.updateSubscription.bind(this),
     );
     fastify.delete(
       "/api/payment/subscriptions/:id",
+      auth,
       this.cancelSubscription.bind(this),
     );
 
     // Checkout endpoints
     fastify.post(
       "/api/payment/checkout",
+      auth,
       this.createCheckoutSession.bind(this),
     );
 
-    // Webhook endpoint
+    // Webhook endpoint — no auth (Stripe verifies via webhook signature)
     fastify.post("/api/payment/webhook", this.handleWebhook.bind(this));
 
     // Billing endpoints
     fastify.get(
       "/api/payment/invoices/:customerId",
+      auth,
       this.getInvoices.bind(this),
     );
 
     // Usage endpoints
-    fastify.get("/api/payment/usage/:customerId", this.getUsage.bind(this));
+    fastify.get("/api/payment/usage/:customerId", auth, this.getUsage.bind(this));
 
-    this.logger.info("Payment API routes registered");
+    this.logger.info("Payment API routes registered (authenticated)");
   }
 
   /**

@@ -132,7 +132,8 @@ export class Config {
   private getDefaultSecurityConfig(): SecurityConfig {
     return {
       jwtSecret:
-        process.env["JWT_SECRET"] || "your-secret-key-change-in-production",
+        process.env["JWT_SECRET"] ||
+        (() => { throw new Error("JWT_SECRET environment variable is required"); })(),
       jwtExpirationTime: process.env["JWT_EXPIRATION"] || "1h",
       rateLimiting: {
         enabled: process.env["RATE_LIMITING_ENABLED"] !== "false",
@@ -140,7 +141,7 @@ export class Config {
       },
       cors: {
         enabled: process.env["CORS_ENABLED"] !== "false",
-        origins: process.env["CORS_ORIGINS"]?.split(",") || ["*"],
+        origins: process.env["CORS_ORIGINS"]?.split(",") || ["http://localhost:3000", "http://localhost:5173"],
       },
     };
   }

@@ -125,7 +125,8 @@ export class LicenseManager {
   private constructor() {
     // In production, this would be an environment variable or secure config
     this.secretKey =
-      process.env["CAM_LICENSE_SECRET"] || "cam-community-edition-2025";
+      process.env["CAM_LICENSE_SECRET"] ||
+      (() => { throw new Error("CAM_LICENSE_SECRET environment variable is required"); })();
   }
 
   static getInstance(): LicenseManager {

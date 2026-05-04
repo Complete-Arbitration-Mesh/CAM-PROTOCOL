@@ -61,7 +61,8 @@ export class CompleteArbitrationMesh {
     this.logger = new Logger(this.config.logLevel as LogLevel);
     this.stateManager = new StateManager();
     this.authService = new AuthenticationService({
-      jwtSecret: options.jwtSecret || "default-secret-change-in-production",
+      jwtSecret: options.jwtSecret || process.env["JWT_SECRET"] ||
+        (() => { throw new Error("jwtSecret option or JWT_SECRET env var is required"); })(),
       tokenExpiry: options.tokenExpiry || "24h",
     });
 

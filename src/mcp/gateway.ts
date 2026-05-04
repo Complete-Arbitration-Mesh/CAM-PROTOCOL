@@ -630,10 +630,16 @@ export class MCPGateway {
       case "contains":
         return Array.isArray(actual) && actual.includes(expected);
       case "matches":
-        return (
-          typeof actual === "string" &&
-          new RegExp(String(expected)).test(actual)
-        );
+        try {
+          const pattern = String(expected);
+          if (pattern.length > 200) return false;
+          return (
+            typeof actual === "string" &&
+            new RegExp(pattern).test(actual.slice(0, 10000))
+          );
+        } catch {
+          return false;
+        }
       default:
         return false;
     }
